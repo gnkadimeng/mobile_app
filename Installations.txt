@@ -1,0 +1,7 @@
+npm install express pg cors
+npm install expo-router@4.0.19
+npm install
+
+
+V@lidation@uj2024
+SSDD_Postgres
