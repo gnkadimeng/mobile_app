@@ -14,7 +14,10 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.chieta-mobile"
+      "bundleIdentifier": "com.anonymous.chieta-mobile",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Allow access to save documents to your photos library"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +25,17 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.anonymous.chieta_mobile",
-      "permissions": ["INTERNET"],
+      "permissions": [
+        "INTERNET",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_MEDIA_LOCATION"
+      ],
+      "logs": {
+        "crashReporting": {
+          "enabled": true
+        }
+      },
       "useNextNotificationsApi": true
     },
     "web": {

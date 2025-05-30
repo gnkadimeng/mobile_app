@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   Linking,
   Dimensions,
+  Modal,
 } from "react-native";
 import { Card, Button, DataTable, Menu, Divider } from "react-native-paper";
 import { MaterialIcons, FontAwesome5, Ionicons, Feather } from "@expo/vector-icons";
@@ -24,6 +25,11 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
   const [visibleMenu, setVisibleMenu] = useState(false);
   const [activeView, setActiveView] = useState("students"); 
 
+  // New state variables for modal pop-ups
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [selectedStatus, setSelectedStatus] = useState(null);
+  const [selectedDocument, setSelectedDocument] = useState(null);
+
   useEffect(() => {
     console.log("Email prop in SSDDScreen:", email);
     if (email) {
@@ -33,10 +39,11 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
     }
   }, [email]);
 
+  
   const fetchStudents = async (email) => {
     try {
       console.log("Fetching students for email:", email);
-      const response = await axios.get(`http://10.114.21.31:5000/students/${email}`);
+      const response = await axios.get(`http://10.114.30.114:5000/students/${email}`);
       console.log("Students API Response:", response.data);
       setStudents(response.data);
     } catch (error) {
@@ -47,7 +54,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const fetchStudentStatus = async (email) => {
     try {
-      const response = await axios.get(`http://10.114.21.31:5000/student-status/${email}`);
+      const response = await axios.get(`http://10.114.30.114:5000/student-status/${email}`);
       console.log("Student Status API Response:", response.data);
       setStudentStatus(response.data);
     } catch (error) {
@@ -60,7 +67,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const fetchDocuments = async (email) => {
     try {
-      const response = await axios.get(`http://10.114.21.31:5000/documents/${email}`);
+      const response = await axios.get(`http://10.114.30.114:5000/documents/${email}`);
       console.log("Documents API Response:", response.data);
       setDocuments(response.data);
     } catch (error) {
@@ -99,71 +106,123 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
           <Card style={styles.dataTableCard}>
             <DataTable>
               <DataTable.Header>
-                <DataTable.Title>Email</DataTable.Title>
-                <DataTable.Title>Decision</DataTable.Title>
-                <DataTable.Title>Date</DataTable.Title>
-                <DataTable.Title>Comment</DataTable.Title>
+                <DataTable.Title style={styles.cellWrapper}>
+                  <Text style={styles.headerTitle}>Email</Text>
+                </DataTable.Title>
+                <DataTable.Title style={styles.cellWrapper}>
+                  <Text style={styles.headerTitle}>Decision</Text>
+                </DataTable.Title>
+                <DataTable.Title style={styles.cellWrapper}>
+                  <Text style={styles.headerTitle}>Date</Text>
+                </DataTable.Title>
               </DataTable.Header>
-
+  
               {students.map((student, index) => (
-                <DataTable.Row key={index}>
-                  <DataTable.Cell>{student.email}</DataTable.Cell>
-                  <DataTable.Cell>{student.decision_outcome || "N/A"}</DataTable.Cell>
-                  <DataTable.Cell>{student.decision_date || "N/A"}</DataTable.Cell>
-                  <DataTable.Cell>{student.decision_verdict || "N/A"}</DataTable.Cell>
-                </DataTable.Row>
-              ))}
-            </DataTable>
-          </Card>
-        );
-      case "student-status":
-        return (
-          <Card style={styles.dataTableCard}>
-            <DataTable>
-              <DataTable.Header>
-                <DataTable.Title>Email</DataTable.Title>
-                <DataTable.Title>Company</DataTable.Title>
-                <DataTable.Title>Decision</DataTable.Title>
-                <DataTable.Title>Type</DataTable.Title>
-              </DataTable.Header>
-
-              {studentStatus.map((status, index) => (
-                <DataTable.Row key={index}>
-                  <DataTable.Cell>{status.email}</DataTable.Cell>
-                  <DataTable.Cell>{status.company_name || "N/A"}</DataTable.Cell>
-                  <DataTable.Cell>{status.decision_outcome || "N/A"}</DataTable.Cell>
-                  <DataTable.Cell>{status.placement_type || "N/A"}</DataTable.Cell>
-                </DataTable.Row>
-              ))}
-            </DataTable>
-          </Card>
-        );
-      case "documents":
-        return (
-          <Card style={styles.dataTableCard}>
-            <DataTable>
-              <DataTable.Header>
-                <DataTable.Title>Document Name</DataTable.Title>
-                <DataTable.Title>Type</DataTable.Title>
-                <DataTable.Title>Date</DataTable.Title>
-                <DataTable.Title>Action</DataTable.Title>
-              </DataTable.Header>
-
-              {documents.map((doc, index) => (
-                <DataTable.Row key={index}>
-                  <DataTable.Cell>{doc.file_name}</DataTable.Cell>
-                  <DataTable.Cell>{doc.document_type}</DataTable.Cell>
-                  <DataTable.Cell>{new Date(doc.uploaded_at).toLocaleDateString()}</DataTable.Cell>
-                  <DataTable.Cell>
-                    <TouchableOpacity onPress={() => handleDownload(doc.file_url, doc.file_name, doc.document_type)}>
-                      <MaterialIcons name="file-download" size={24} color="#6A0DAD" />
-                    </TouchableOpacity>
+                <DataTable.Row
+                  key={index}
+                  onPress={() => setSelectedStudent(student)}
+                >
+                  <DataTable.Cell style={styles.cellWrapper}>
+                    <Text style={styles.wrappedText}>{student.email}</Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.cellWrapper}>
+                    <Text style={styles.wrappedText}>{student.decision_outcome || "N/A"}</Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.cellWrapper}>
+                    <Text style={styles.wrappedText}>{student.decision_date || "N/A"}</Text>
                   </DataTable.Cell>
                 </DataTable.Row>
               ))}
             </DataTable>
           </Card>
         );
+        case "student-status":
+          return (
+            <Card style={styles.dataTableCard}>
+              <DataTable>
+                <DataTable.Header>
+                  <DataTable.Title style={styles.cellWrapper}>
+                    <Text style={styles.headerTitle}>Email</Text>
+                  </DataTable.Title>
+                  <DataTable.Title style={styles.cellWrapper}>
+                    <Text style={styles.headerTitle}>Company</Text>
+                  </DataTable.Title>
+                  <DataTable.Title style={styles.cellWrapper}>
+                    <Text style={styles.headerTitle}>Decision</Text>
+                  </DataTable.Title>
+                  <DataTable.Title style={styles.cellWrapper}>
+                    <Text style={styles.headerTitle}>Type</Text>
+                  </DataTable.Title>
+                </DataTable.Header>
+    
+                {studentStatus.map((status, index) => (
+                  <DataTable.Row
+                    key={index}
+                    onPress={() => setSelectedStatus(status)}
+                  >
+                    <DataTable.Cell style={styles.cellWrapper}>
+                      <Text style={styles.wrappedText}>{status.email}</Text>
+                    </DataTable.Cell>
+                    <DataTable.Cell style={styles.cellWrapper}>
+                      <Text style={styles.wrappedText}>{status.company_name || "N/A"}</Text>
+                    </DataTable.Cell>
+                    <DataTable.Cell style={styles.cellWrapper}>
+                      <Text style={styles.wrappedText}>{status.decision_outcome || "N/A"}</Text>
+                    </DataTable.Cell>
+                    <DataTable.Cell style={styles.cellWrapper}>
+                      <Text style={styles.wrappedText}>{status.placement_type || "N/A"}</Text>
+                    </DataTable.Cell>
+                  </DataTable.Row>
+                ))}
+              </DataTable>
+            </Card>
+          );
+          case "documents":
+            return (
+              <Card style={styles.dataTableCard}>
+                <DataTable>
+                  <DataTable.Header>
+                    <DataTable.Title style={styles.cellWrapper}>
+                      <Text style={styles.headerTitle}>Document Name</Text>
+                    </DataTable.Title>
+                    <DataTable.Title style={styles.cellWrapper}>
+                      <Text style={styles.headerTitle}>Type</Text>
+                    </DataTable.Title>
+                    <DataTable.Title style={styles.cellWrapper}>
+                      <Text style={styles.headerTitle}>Date</Text>
+                    </DataTable.Title>
+                    <DataTable.Title style={styles.cellWrapper}>
+                      <Text style={styles.headerTitle}>Action</Text>
+                    </DataTable.Title>
+                  </DataTable.Header>
+          
+                  {documents.map((doc, index) => (
+                    <DataTable.Row
+                      key={index}
+                      onPress={() => setSelectedDocument(doc)}
+                    >
+                      <DataTable.Cell style={styles.cellWrapper}>
+                        <Text style={styles.wrappedText} numberOfLines={2}>{doc.file_name}</Text>
+                      </DataTable.Cell>
+                      <DataTable.Cell style={styles.cellWrapper}>
+                        <Text style={styles.wrappedText}>{doc.document_type}</Text>
+                      </DataTable.Cell>
+                      <DataTable.Cell style={styles.cellWrapper}>
+                        <Text style={styles.wrappedText}>{new Date(doc.uploaded_at).toLocaleDateString()}</Text>
+                      </DataTable.Cell>
+                      <DataTable.Cell style={styles.cellWrapper}>
+                        <TouchableOpacity 
+                          onPress={() => handleDownload(doc.file_url, doc.file_name, doc.document_type)}
+                          style={styles.downloadButton}
+                        >
+                          <MaterialIcons name="file-download" size={24} color="#6A0DAD" />
+                        </TouchableOpacity>
+                      </DataTable.Cell>
+                    </DataTable.Row>
+                  ))}
+                </DataTable>
+              </Card>
+            );
       default:
         return null;
     }
@@ -184,7 +243,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
       style={styles.background}
       imageStyle={styles.backgroundImage}
     >
-      <LinearGradient colors={["#3A0A53", "#6A0DAD"]} style={styles.navbar}>
+      <LinearGradient colors={["#3A0DAD", "#6A0DAD"]} style={styles.navbar}>
         <View style={styles.navbarContent}>
           <Menu
             visible={visibleMenu}
@@ -246,16 +305,126 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
         {loading ? (
           <ActivityIndicator size="large" color="#6A0DAD" />
         ) : (
-          <LinearGradient colors={["#6A0DAD", "#3A0A53"]} style={styles.section}>
+          <LinearGradient colors={["#6A0DAD", "#3A0DAD"]} style={styles.section}>
             <Text style={styles.sectionTitle}>{getViewTitle()}</Text>
             {renderActiveView()}
           </LinearGradient>
         )}
       </ScrollView>
 
-      <LinearGradient colors={["#3A0A53", "#6A0DAD"]} style={styles.footer}>
+      <LinearGradient colors={["#3A0DAD", "#6A0DAD"]} style={styles.footer}>
         <Text style={styles.footerText}>Copyright © 2025, CHIETA. All rights reserved.</Text>
       </LinearGradient>
+
+      {/* Modal for Admin Status Details */}
+      <Modal
+        visible={!!selectedStudent}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedStudent(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedStudent(null)}
+        >
+          <View style={styles.modalContent}>
+            {selectedStudent && (
+              <>
+                <Text style={styles.modalTitle}>Admin Status Details</Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Email: </Text>
+                  {selectedStudent.email}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Decision: </Text>
+                  {selectedStudent.decision_outcome || "N/A"}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Date: </Text>
+                  {selectedStudent.decision_date || "N/A"}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Comment: </Text>
+                  {selectedStudent.decision_verdict || "N/A"}
+                </Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal for Placement Status Details */}
+      <Modal
+        visible={!!selectedStatus}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedStatus(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedStatus(null)}
+        >
+          <View style={styles.modalContent}>
+            {selectedStatus && (
+              <>
+                <Text style={styles.modalTitle}>Placement Status Details</Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Email: </Text>
+                  {selectedStatus.email}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Company: </Text>
+                  {selectedStatus.company_name || "N/A"}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Decision: </Text>
+                  {selectedStatus.decision_outcome || "N/A"}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Type: </Text>
+                  {selectedStatus.placement_type || "N/A"}
+                </Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Modal for Document Details */}
+      <Modal
+        visible={!!selectedDocument}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSelectedDocument(null)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setSelectedDocument(null)}
+        >
+          <View style={styles.modalContent}>
+            {selectedDocument && (
+              <>
+                <Text style={styles.modalTitle}>Document Details</Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Name: </Text>
+                  {selectedDocument.file_name}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Type: </Text>
+                  {selectedDocument.document_type}
+                </Text>
+                <Text style={styles.modalText}>
+                  <Text style={styles.boldText}>Date: </Text>
+                  {new Date(selectedDocument.uploaded_at).toLocaleDateString()}
+                </Text>
+              </>
+            )}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </ImageBackground>
   );
 };
@@ -361,6 +530,49 @@ const styles = StyleSheet.create({
   footerText: { 
     color: "white", 
     fontSize: 14 
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 8,
+    width: "100%",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  modalText: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  boldText: {
+    fontWeight: "bold",
+  },
+  cellWrapper: {
+    flex: 1,
+    paddingVertical: 8,
+  },
+  wrappedText: {
+    flexWrap: 'wrap',
+    flexShrink: 1,
+  },
+  headerTitle: {
+    fontWeight: 'bold',
+    flexWrap: 'wrap',
+    flexShrink: 1,
+  },
+  downloadButton: {
+    alignItems: 'center',
+    justifyContent: 'center', 
   },
 });
 

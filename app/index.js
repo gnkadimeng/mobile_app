@@ -8,13 +8,16 @@ import HomeScreen from "../components/HomeScreen";
 import WelcomeScreen from "../components/WelcomeScreen";
 import SSDDScreen from "../components/SSDDScreen";
 import GMsScreen from "../components/GMsScreen";
-import GmsLoginScreen from "../components/GmsLoginScreen"; 
+import GmsLoginScreen from "../components/GmsLoginScreen";
+import IMsLoginScreen from "../components/IMsLoginScreen"; 
+import IMsScreen from "../components/IMsScreen";
 
 export default function App() {
   const [isSplashVisible, setIsSplashVisible] = useState(true);
   const [currentScreen, setCurrentScreen] = useState("Welcome");
   const [userEmail, setUserEmail] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userRole, setUserRole] = useState(""); // Added to track user role
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -53,11 +56,22 @@ export default function App() {
   const handleGMLoginSuccess = (email) => {
     setUserEmail(email);
     setIsLoggedIn(true);
-    setCurrentScreen("GMsScreen"); // Redirect to GMsScreen after successful GM login
+    setCurrentScreen("GMsScreen");
+  };
+
+  const handleIMLoginSuccess = (email, role) => {
+    setUserEmail(email);
+    setUserRole(role);
+    setIsLoggedIn(true);
+    setCurrentScreen("IMsScreen");
   };
 
   const handleNavigateToGMS = () => {
-    setCurrentScreen("GmsLogin"); // Change this to navigate to GmsLoginScreen first
+    setCurrentScreen("GmsLogin");
+  };
+
+  const handleNavigateToIMS = () => {
+    setCurrentScreen("IMsLogin");
   };
 
   const openWebsite = (url) => {
@@ -81,6 +95,7 @@ export default function App() {
           onLoginSuccess={handleLoginSuccess}
           onNavigateBack={handleNavigateBack}
           onNavigateToGMS={handleNavigateToGMS}
+          onNavigateToIMS={handleNavigateToIMS} 
         />
       ) : currentScreen === "Register" ? (
         <RegisterScreen onNavigateToLogin={handleNavigateToLogin} />
@@ -100,11 +115,24 @@ export default function App() {
           onLoginSuccess={handleGMLoginSuccess}
           onNavigateBack={handleNavigateBack}
         />
+      ) : currentScreen === "IMsLogin" ? (
+        <IMsLoginScreen
+          onLoginSuccess={handleIMLoginSuccess}
+          onNavigateBack={handleNavigateBack}
+        />
+      ) : currentScreen === "IMsScreen" ? (
+        <IMsScreen
+          onNavigateBack={handleNavigateBack}
+          email={userEmail}
+          isLoggedIn={isLoggedIn}
+          role={userRole}
+        />
       ) : currentScreen === "Home" ? (
         <HomeScreen
           onNavigateBack={handleNavigateBack}
           onNavigateToLogin={handleNavigateToLogin}
           onNavigateToGMS={handleNavigateToGMS}
+          onNavigateToIMS={handleNavigateToIMS}
         />
       ) : null}
     </PaperProvider>

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, StyleSheet, ScrollView, Image, Text, Dimensions } from "react-native";
+import { View, StyleSheet, TouchableOpacity, ScrollView, Image, Text, Dimensions } from "react-native";
 import { Card, Button, IconButton } from "react-native-paper";
 import { LinearGradient } from "expo-linear-gradient";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,13 +9,23 @@ const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - 40) / 2; // Slightly reduced padding
 const CARD_HEIGHT = width < 400 ? 180 : 120; // Make cards rectangular but smaller
 
+const ServiceTile = ({ iconName, label, description, onPress, iconColor }) => (
+  <View style={styles.tileWrapper}>
+    <TouchableOpacity style={styles.tileButton} onPress={onPress}>
+      <Ionicons name={iconName} size={28} color={iconColor || "#00B9F1"} />
+      <Text style={styles.tileLabel}>{label}</Text>
+    </TouchableOpacity>
+    <Text style={styles.tileDescription}>{description}</Text>
+  </View>
+);
+
 const HomeScreen = ({ navigation, onNavigateBack, onNavigateToLogin, onNavigateToGMS }) => {
   return (
     <SafeAreaView style={styles.safeContainer}>
       {/* Header - Made more compact */}
       <LinearGradient colors={["#430c5a", "#66138a", "#430c5a"]} style={styles.header}>
-      {/* <LinearGradient colors={["#3A0A53", "#512b58"]} style={styles.header}> */}
-        <View style={styles.backButtonContainer}>
+        {/* <LinearGradient colors={["#3A0A53", "#512b58"]} style={styles.header}> */}
+        {/* <View style={styles.backButtonContainer}>
           <IconButton
             icon="arrow-left"
             color="white"
@@ -23,9 +33,11 @@ const HomeScreen = ({ navigation, onNavigateBack, onNavigateToLogin, onNavigateT
             onPress={onNavigateBack}
           />
           <View style={{ flex: 1 }} />
-        </View>
-        <Text style={styles.headerTitle}>CHIETA Systems</Text>
-        <Text style={styles.headerSubtitle}>Specialized systems</Text>
+        </View> */}
+        <TouchableOpacity style={styles.backButtonWrapper} onPress={onNavigateBack}>
+          <Ionicons name="arrow-back-outline" size={20} color="#3A0A53" />
+          <Text style={styles.backButtonText}>Back</Text>
+        </TouchableOpacity>
       </LinearGradient>
 
       {/* Logo - Made smaller */}
@@ -35,7 +47,7 @@ const HomeScreen = ({ navigation, onNavigateBack, onNavigateToLogin, onNavigateT
 
       <View style={styles.bannerContainer}>
         <Image
-          source={require("../assets/images/bg_image.png")} 
+          source={require("../assets/images/bg_image.png")}
           style={styles.bannerImage}
           resizeMode="cover"
         />
@@ -43,98 +55,36 @@ const HomeScreen = ({ navigation, onNavigateBack, onNavigateToLogin, onNavigateT
 
       {/* Main Systems in Grid - More compact */}
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Row 1 */}
-        <View style={styles.row}>
-          {/* SSDD Container */}
-          <Card style={[styles.serviceCard, { marginRight: 10 }]}>
-            {/* <LinearGradient colors={["#3A0A53", "#512b58"]} style={styles.gradient}> */}
-            <LinearGradient colors={["#3A0A53", "#552c6b", "#806190", "#fff"]} style={styles.gradient}>
-              <Ionicons name="analytics-outline" size={30} color="#fff" style={styles.icon} />
-              <Text style={styles.serviceTitle}>SSDD</Text>
-              <Text style={styles.systemDescription}>
-                Skills Database
-              </Text>
-              <Button
-                mode="contained"
-                style={styles.systemButton}
-                onPress={onNavigateToLogin}
-                labelStyle={{ color: 'white', fontSize: 10 }}
-                contentStyle={{ height: 50 }}
-              >
-                Explore
-              </Button>
-            </LinearGradient>
-          </Card>
-
-          {/* GMS Container */}
-          <Card style={styles.serviceCard}>
-            {/* <LinearGradient colors={["#CE8946", "#feb47b"]} style={styles.gradient}> */}
-            {/* <LinearGradient colors={["#c73761", "#d46686", "#fff"]} style={styles.gradient}> */}
-            <LinearGradient colors={["#3A0A53", "#552c6b","#806190", "#fff"]} style={styles.gradient}>
-              <Ionicons name="wallet-outline" size={30} color="#fff" style={styles.icon} />
-              <Text style={styles.serviceTitle}>GMS</Text>
-              <Text style={styles.systemDescription}>
-                Grants System
-              </Text>
-              <Button
-                mode="contained"
-                style={styles.systemButton}
-                onPress={onNavigateToGMS}
-                labelStyle={{ color: 'white', fontSize: 10 }}
-                contentStyle={{ height: 50 }}
-              >
-                Explore
-              </Button>
-            </LinearGradient>
-          </Card>
-        </View>
-
-        {/* Row 2 */}
-        <View style={styles.row}>
-          {/* IMS Container */}
-          <Card style={[styles.serviceCard, { marginRight: 10 }]}>
-            {/* <LinearGradient colors={["#3A0A53", "#6a11cb"]} style={styles.gradient}> */}
-            {/* <LinearGradient colors={["#2c9c94", "#5fb4ae", "#fff"]} style={styles.gradient}> */}
-            <LinearGradient colors={["#3A0A53", "#552c6b", "#806190", "#fff"]} style={styles.gradient}>
-              <Ionicons name="document-text-outline" size={30} color="#fff" style={styles.icon} />
-              <Text style={styles.serviceTitle}>IMS</Text>
-              <Text style={styles.systemDescription}>
-                Information System
-              </Text>
-              <Button
-                mode="contained"
-                style={styles.systemButton}
-                onPress={onNavigateToLogin}
-                labelStyle={{ color: 'white', fontSize: 10 }}
-                contentStyle={{ height: 50 }}
-              >
-                Explore
-              </Button>
-            </LinearGradient>
-          </Card>
-
-          {/* Empty Card */}
-          <Card style={styles.serviceCard}>
-            {/* <LinearGradient colors={["#3A0A53", "#512b58"]} style={styles.gradient}> */}
-            {/* <LinearGradient colors={["#bf591b", "#d0875a", "#fff"]} style={styles.gradient}> */}
-            <LinearGradient colors={["#2c9c94", "#48a9a2", "#5db2ac", "#fff"]} style={styles.gradient}>
-              <Ionicons name="add-outline" size={30} color="#fff" style={styles.icon} />
-              <Text style={styles.serviceTitle}>More(EQTA)</Text>
-              <Text style={styles.systemDescription}>
-                Coming soon
-              </Text>
-              <Button
-                mode="contained"
-                style={styles.systemButton}
-                onPress={() => { }}
-                labelStyle={{ color: 'white', fontSize: 10 }}
-                contentStyle={{ height: 50 }}
-              >
-                Soon
-              </Button>
-            </LinearGradient>
-          </Card>
-        </View>
+      <View style={styles.tileGrid}>
+  <ServiceTile
+    iconName="analytics-outline"
+    label="SSDD"
+    description="Skills Supply Demand Database "
+    onPress={onNavigateToLogin}
+    iconColor="#3d0f57"
+  />
+  <ServiceTile
+    iconName="wallet-outline"
+    label="GMS"
+    description="Grants Management System"
+    onPress={onNavigateToGMS}
+    iconColor="#3d0f57"
+  />
+  <ServiceTile
+    iconName="document-text-outline"
+    label="IMS"
+    description="Information Management System"
+    onPress={onNavigateToLogin}
+    iconColor="#3d0f57"
+  />
+  <ServiceTile
+    iconName="add-outline"
+    label="ETQA"
+    description="Coming soon"
+    onPress={() => {}}
+     iconColor="#2c9d97"
+  />
+</View>
       </ScrollView>
 
       {/* Bottom Navigation - More compact */}
@@ -315,6 +265,73 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 220,
     borderRadius: 10,
+  },
+  backButtonWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#3A0A53',
+    marginLeft: 10,
+    alignSelf: 'flex-start',
+    marginBottom: 0,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  backButtonText: {
+    marginLeft: 6,
+    color: '#3A0A53',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  tileGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 10,
+  },
+
+  tileButton: {
+    width: (width - 64) / 4,
+    alignItems: 'center',
+    marginVertical: 12,
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+    // borderColor: '#3A0A53',
+    borderColor: '#c78c2e',
+    borderWidth: 1,
+  },
+
+  tileLabel: {
+    fontSize: 12,
+    color: '#000',
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  tileWrapper: {
+    // width: (width - 64) / 2, 
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  
+  tileDescription: {
+    fontSize: 11,
+    color: '#3A0A53',
+    marginTop: 6,
+    textAlign: 'center',
   },
 });
 

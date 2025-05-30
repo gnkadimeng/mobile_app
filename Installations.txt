@@ -1,6 +1,8 @@
 npm install express pg cors
 npm install expo-router@4.0.19
 npm install
+npx expo install expo@~52.0.42 expo-router@~4.0.20 expo-system-ui@~4.0.9 react-native@0.76.9
+npx expo install expo@~52.0.46 expo-splash-screen@~0.29.24
 
 
 V@lidation@uj2024

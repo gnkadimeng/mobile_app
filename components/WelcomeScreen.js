@@ -73,24 +73,30 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <View style={styles.headerRight}></View>
-      </View>
+      </View> */}
 
-      <View style={styles.header}>
+      {/* <View style={styles.header}>
         <Text style={styles.headerText}>
           Tel: 087 357 6608 | 011 628 7000 | Anti-Fraud Line: 0800 333 120
         </Text>
-      </View>
+      </View> */}
 
       {/* Logo at top-left corner */}
       <View style={styles.logoContainer}>
-        <Image
-          source={require('../assets/images/chieta_logo.jpg')}
-          style={styles.headerLogo}
-          resizeMode="contain"
-        />
-      </View>
+  <View style={styles.logoRow}>
+    <Image
+      source={require('../assets/images/chieta_logo.jpg')}
+      style={styles.headerLogo}
+      resizeMode="contain"
+    />
+    <TouchableOpacity onPress={onNavigateToHome} style={styles.homeIconWrapper}>
+  <Ionicons name="home-outline" size={24} color="#3A0A53" />
+  <Text style={styles.homeIconText}>Home</Text>
+</TouchableOpacity>
+  </View>
+</View>
 
       {/* Main Content */}
       <ScrollView contentContainerStyle={styles.mainContent}>
@@ -162,7 +168,7 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
 
       {/* Footer */}
       <View style={styles.footer}>
-        <View style={styles.footerButtons}>
+        {/* <View style={styles.footerButtons}>
           <TouchableOpacity style={styles.footerButton} onPress={onNavigateToLatest}>
             <Ionicons name="newspaper-outline" size={20} color="#fff" style={styles.footerButtonIcon} />
             <Text style={styles.footerButtonText}>Latest</Text>
@@ -171,7 +177,10 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
             <Ionicons name="log-in-outline" size={20} color="#fff" style={styles.footerButtonIcon} />
             <Text style={styles.footerButtonText}>Home</Text>
           </TouchableOpacity>
-        </View>
+        </View> */}
+        <Text style={styles.footerText}>
+          Tel: 087 357 6608 | 011 628 7000 | Anti-Fraud Line: 0800 333 120
+        </Text>
         <Text style={styles.footerText}>© 2025, CHIETA. All rights reserved.</Text>
       </View>
 
@@ -514,6 +523,36 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
     zIndex: 5,
+  },
+  logoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 10,
+  },
+  homeIcon: {
+    padding: 10,
+  },
+  homeIconWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#3A0A53',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  homeIconText: {
+    marginLeft: 6,
+    color: '#3A0A53',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
 });
 

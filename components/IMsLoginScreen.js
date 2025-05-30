@@ -9,12 +9,13 @@ import {
   Alert,
   StyleSheet,
   Image,
+  Linking
 } from "react-native";
 import { IconButton } from "react-native-paper";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 
-const GmsLoginScreen = ({ onNavigateBack, onLoginSuccess }) => {
+const IMsLoginScreen = ({ onNavigateBack, onLoginSuccess }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -48,12 +49,10 @@ const GmsLoginScreen = ({ onNavigateBack, onLoginSuccess }) => {
       let errorMessage = "Something went wrong. Please try again.";
 
       if (error.response) {
-        // The request was made and the server responded with a status code
         console.error("Response data:", error.response.data);
         console.error("Response status:", error.response.status);
         errorMessage = error.response.data.message || errorMessage;
       } else if (error.request) {
-        // The request was made but no response was received
         console.error("No response received:", error.request);
         errorMessage = "No response from server. Please check your connection.";
       }
@@ -62,6 +61,11 @@ const GmsLoginScreen = ({ onNavigateBack, onLoginSuccess }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRegisterRedirect = () => {
+    Linking.openURL("https://ims.chieta.org.za/account/register")
+      .catch(err => console.error("Failed to open URL:", err));
   };
 
   return (
@@ -81,8 +85,6 @@ const GmsLoginScreen = ({ onNavigateBack, onLoginSuccess }) => {
 
       {/* Login Form */}
       <View style={styles.formContainer}>
-  
-
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -112,6 +114,11 @@ const GmsLoginScreen = ({ onNavigateBack, onLoginSuccess }) => {
             />
           )}
         </View>
+
+        {/* Register Link */}
+        <TouchableOpacity onPress={handleRegisterRedirect} style={styles.registerLink}>
+          <Text style={styles.registerText}>Don't have an account? Register here</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Footer */}
@@ -172,6 +179,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     width: "100%",
     marginTop: 10,
+    marginBottom: 20,
   },
   footer: {
     backgroundColor: "#3A0A53",
@@ -198,13 +206,20 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  
   backButtonText: {
     marginLeft: 6,
     color: '#3A0A53',
     fontWeight: 'bold',
     fontSize: 14,
   },
+  registerLink: {
+    marginTop: 15,
+  },
+  registerText: {
+    color: "#3A0A53",
+    textDecorationLine: "underline",
+    fontWeight: "bold",
+  },
 });
 
-export default GmsLoginScreen;
+export default IMsLoginScreen;
