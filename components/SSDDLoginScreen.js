@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 
-const IMsLoginScreen = () => {
+const SSDDLoginScreen = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,7 +33,7 @@ const IMsLoginScreen = () => {
     setLoading(true);
 
     try {
-      const response = await fetch('http://172.20.10.14:5000/IMsLogin', {
+      const response = await fetch('http://172.20.10.14:5000/loginSSDD', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,19 +48,28 @@ const IMsLoginScreen = () => {
 
       if (response.ok) {
         // Login successful
-        Alert.alert('Success', 'Login successful!', [
+        Alert.alert('Success', data.message || 'Login successful!', [
           {
             text: 'OK',
             onPress: () => {
               // Navigate to next screen or handle successful login
-              console.log('User data:', data);
-              // Example: navigation.navigate('Dashboard', { user: data[0] });
+              console.log('User data:', data.user);
+              // Example: navigation.navigate('LearnerDashboard', { user: data.user });
             },
           },
         ]);
       } else {
         // Handle different error responses
-        const errorMessage = data.error || 'Login failed';
+        let errorMessage = 'Login failed';
+        
+        if (response.status === 401) {
+          errorMessage = data.message || 'Invalid credentials or unauthorized access';
+        } else if (response.status === 400) {
+          errorMessage = data.message || 'Please check your input';
+        } else if (response.status === 500) {
+          errorMessage = data.message || 'Server error. Please try again later.';
+        }
+        
         Alert.alert('Login Failed', errorMessage);
       }
     } catch (error) {
@@ -82,8 +91,8 @@ const IMsLoginScreen = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <View style={styles.formContainer}>
-        <Text style={styles.title}>IMS Login</Text>
-        <Text style={styles.subtitle}>SQL Server Authentication</Text>
+        <Text style={styles.title}>Learner Login</Text>
+        <Text style={styles.subtitle}>PostgreSQL Authentication</Text>
 
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Email Address</Text>
@@ -115,6 +124,11 @@ const IMsLoginScreen = () => {
           />
         </View>
 
+        <View style={styles.infoContainer}>
+          <Text style={styles.infoText}>• Account Type: Learner</Text>
+          <Text style={styles.infoText}>• Account must be active</Text>
+        </View>
+
         <TouchableOpacity
           style={[styles.loginButton, loading && styles.disabledButton]}
           onPress={handleLogin}
@@ -142,7 +156,7 @@ const IMsLoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f0f8ff',
     justifyContent: 'center',
   },
   formContainer: {
@@ -164,12 +178,12 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 5,
-    color: '#333',
+    color: '#2c5282',
   },
   subtitle: {
     fontSize: 14,
     textAlign: 'center',
-    marginBottom: 30,
+    marginBottom: 25,
     color: '#666',
   },
   inputContainer: {
@@ -190,8 +204,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     backgroundColor: '#fafafa',
   },
+  infoContainer: {
+    backgroundColor: '#e6f3ff',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2c5282',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#2c5282',
+    marginBottom: 2,
+  },
   loginButton: {
-    backgroundColor: '#007bff',
+    backgroundColor: '#2c5282',
     paddingVertical: 15,
     borderRadius: 8,
     alignItems: 'center',
@@ -219,4 +246,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default IMsLoginScreen;
+export default SSDDLoginScreen;

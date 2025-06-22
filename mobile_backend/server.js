@@ -356,7 +356,7 @@ app.get("/documents/:email", async (req, res) => {
       const fileExists = fs.existsSync(filePath);
       return {
         ...doc,
-        file_url: fileExists ? `http://10.114.0.15:5000/uploads/${doc.file_name}` : null,
+        file_url: fileExists ? `http://172.20.10.14:5000/uploads/${doc.file_name}` : null,
       };
     });
 
@@ -365,6 +365,39 @@ app.get("/documents/:email", async (req, res) => {
     console.error("Error fetching documents:", error);
     res.status(500).json({ error: "Failed to fetch documents" });
   }
+});
+
+
+
+// Login endpoint SQL SERVER (ims)
+const appLogin = `
+SELECT * FROM AbpUsers WHERE EmailAddress = ? AND Password = ?
+`;
+
+// POST endpoint for user login
+app.post("/IMsLogin", (req, res, next) => {
+    const { email, password } = req.body;
+    
+    // Validate input
+    if (!email || !password) {
+        return res.status(400).json({ error: "Email and password are required" });
+    }
+    
+    sql.query(connectionString, appLogin, [email, password], (err, rows) => {
+        if (err) {
+            console.log(err);
+            res.status(500).json({ error: "Database error" });
+        } else if (rows && rows.length > 0) {
+            // Remove password from response for security
+            const userWithoutPassword = rows.map(user => {
+                const { Password, ...userInfo } = user;
+                return userInfo;
+            });
+            res.json(userWithoutPassword);
+        } else {
+            res.status(401).json({ error: "Invalid credentials" });
+        }
+    });
 });
 
 // API Route to Fetch User Details by Email (PostgreSQL SSDD)
@@ -389,7 +422,7 @@ app.get("/user/:email", async (req, res) => {
 });
 
 // API Route for Login (PostgreSQL)
-app.post("/login", async (req, res) => {
+app.post("/loginSSDD", async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) {
     return res.status(400).json({ message: "Email and password are required" });

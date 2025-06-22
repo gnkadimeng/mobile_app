@@ -34,7 +34,7 @@ const GMsScreen = ({ onNavigateBack, userEmail }) => {
   const fetchDGData = async () => {
     try {
       setLoading(true);
-      const response = await fetch("http://10.114.30.114:5000/dg-dashboard");
+      const response = await fetch("http://172.20.10.14:5000/dg-dashboard");
       const data = await response.json();
       
       if (data && data.length > 0) {

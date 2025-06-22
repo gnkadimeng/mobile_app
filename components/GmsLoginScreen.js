@@ -29,7 +29,7 @@ const GmsLoginScreen = ({ onNavigateBack, onLoginSuccess }) => {
     try {
       console.log("Attempting GM login with:", { email, password });
 
-      const response = await axios.post("http://10.114.30.114:5000/GMsLogin", {
+      const response = await axios.post("http://172.20.10.14:5000/GMsLogin", {
         email,
         password
       });

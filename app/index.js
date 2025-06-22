@@ -2,7 +2,6 @@ import React, { useState, useEffect } from "react";
 import { Provider as PaperProvider } from 'react-native-paper';
 import { Linking } from "react-native";
 import SplashScreen from "../components/SplashScreen";
-import LoginScreen from "../components/LoginScreen";
 import RegisterScreen from "../components/RegisterScreen";
 import HomeScreen from "../components/HomeScreen";
 import WelcomeScreen from "../components/WelcomeScreen";
@@ -11,6 +10,7 @@ import GMsScreen from "../components/GMsScreen";
 import GmsLoginScreen from "../components/GmsLoginScreen";
 import IMsLoginScreen from "../components/IMsLoginScreen"; 
 import IMsScreen from "../components/IMsScreen";
+import SSDDLoginScreen from "../components/SSDDLoginScreen";
 
 export default function App() {
   const [isSplashVisible, setIsSplashVisible] = useState(true);
@@ -32,11 +32,11 @@ export default function App() {
   };
 
   const handleNavigateToLogin = () => {
-    setCurrentScreen("Login");
+    setCurrentScreen("SSDDLogin");
   };
 
   const handleNavigateFromWelcome = () => {
-    setCurrentScreen("Login");
+    setCurrentScreen("SSDDLogin");
   };
 
   const handleNavigateToHome = () => {
@@ -74,6 +74,12 @@ export default function App() {
     setCurrentScreen("IMsLogin");
   };
 
+  const handleSSDDLoginSuccess = (email) => {
+    setUserEmail(email);
+    setIsLoggedIn(true);
+    setCurrentScreen("SSDDScreen");
+  };
+
   const openWebsite = (url) => {
     Linking.openURL(url).catch((err) => console.error("Failed to open URL:", err));
   };
@@ -90,12 +96,12 @@ export default function App() {
           onNavigateToHome={handleNavigateToHome}
           openWebsite={openWebsite}
         />
-      ) : currentScreen === "Login" ? (
-        <LoginScreen
-          onLoginSuccess={handleLoginSuccess}
+      ) : currentScreen === "SSDDLogin" ? (
+        <SSDDLoginScreen
+          onLoginSuccess={handleSSDDLoginSuccess}
           onNavigateBack={handleNavigateBack}
           onNavigateToGMS={handleNavigateToGMS}
-          onNavigateToIMS={handleNavigateToIMS} 
+          onNavigateToIMS={handleNavigateToIMS}
         />
       ) : currentScreen === "Register" ? (
         <RegisterScreen onNavigateToLogin={handleNavigateToLogin} />

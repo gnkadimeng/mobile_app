@@ -43,7 +43,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
   const fetchStudents = async (email) => {
     try {
       console.log("Fetching students for email:", email);
-      const response = await axios.get(`http://10.114.30.114:5000/students/${email}`);
+      const response = await axios.get(`http://172.20.10.14:5000/students/${email}`);
       console.log("Students API Response:", response.data);
       setStudents(response.data);
     } catch (error) {
@@ -54,7 +54,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const fetchStudentStatus = async (email) => {
     try {
-      const response = await axios.get(`http://10.114.30.114:5000/student-status/${email}`);
+      const response = await axios.get(`http://172.20.10.14:5000/student-status/${email}`);
       console.log("Student Status API Response:", response.data);
       setStudentStatus(response.data);
     } catch (error) {
@@ -67,7 +67,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const fetchDocuments = async (email) => {
     try {
-      const response = await axios.get(`http://10.114.30.114:5000/documents/${email}`);
+      const response = await axios.get(`http://172.20.10.14:5000/documents/${email}`);
       console.log("Documents API Response:", response.data);
       setDocuments(response.data);
     } catch (error) {
