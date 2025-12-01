@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Modal, Alert, TextInput, FlatList, Button, ImageBackground
+  View, Text, Image, TouchableOpacity, StyleSheet, ScrollView, Modal, Alert, TextInput, FlatList, Button, ImageBackground, StatusBar, SafeAreaView
 } from 'react-native';
 import Ionicons from 'react-native-vector-icons/Ionicons';
 import * as Animatable from 'react-native-animatable';
@@ -13,6 +13,8 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
   const [messages, setMessages] = useState([]);
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(false);
+  const [redirectModalVisible, setRedirectModalVisible] = useState(false);
+  const [pendingUrl, setPendingUrl] = useState('');
 
   const sendFaqForPrediction = (faq) => {
     setMessages((prevMessages) => [
@@ -20,6 +22,11 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
       { sender: 'user', text: faq },
     ]);
     handleSend(faq);
+  };
+
+  const showRedirectConfirmation = (url) => {
+    setPendingUrl(url);
+    setRedirectModalVisible(true);
   };
 
   const handleOpenLink = (url) => {
@@ -32,6 +39,19 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
         }
       })
       .catch((err) => console.error('An error occurred', err));
+  };
+
+  const confirmRedirect = () => {
+    setRedirectModalVisible(false);
+    if (pendingUrl) {
+      handleOpenLink(pendingUrl);
+    }
+    setPendingUrl('');
+  };
+
+  const cancelRedirect = () => {
+    setRedirectModalVisible(false);
+    setPendingUrl('');
   };
 
   const fetchPrograms = async (programType) => {
@@ -70,126 +90,167 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
     setUserInput('');
   };
 
+  const programButtons = [
+    { title: "Bursary Programs", type: "bursaries", icon: "school-outline", color: "#4A90E2" },
+    { title: "Learnership Grants", type: "learnership grants", icon: "book-outline", color: "#7ED321" },
+    { title: "Work-Based Learning", type: "work-based learning programs", icon: "briefcase-outline", color: "#F5A623" },
+    { title: "Apprenticeship Grants", type: "apprenticeship grants", icon: "build-outline", color: "#D0021B" }
+  ];
+
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      {/* <View style={styles.header}>
-        <View style={styles.headerRight}></View>
-      </View> */}
-
-      {/* <View style={styles.header}>
-        <Text style={styles.headerText}>
-          Tel: 087 357 6608 | 011 628 7000 | Anti-Fraud Line: 0800 333 120
-        </Text>
-      </View> */}
-
-      {/* Logo at top-left corner */}
-      <View style={styles.logoContainer}>
-  <View style={styles.logoRow}>
-    <Image
-      source={require('../assets/images/chieta_logo.jpg')}
-      style={styles.headerLogo}
-      resizeMode="contain"
-    />
-    <TouchableOpacity onPress={onNavigateToHome} style={styles.homeIconWrapper}>
-  <Ionicons name="home-outline" size={24} color="#3A0A53" />
-  <Text style={styles.homeIconText}>Home</Text>
-</TouchableOpacity>
-  </View>
-</View>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="light-content" backgroundColor="#2C0A40" />
+      
+      {/* Enhanced Header */}
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
+          <Image
+            source={require('../assets/images/chieta_logo.png')}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
+          <TouchableOpacity onPress={onNavigateToHome} style={styles.homeButton}>
+            <Ionicons name="home" size={22} color="#FFFFFF" />
+            <Text style={styles.homeButtonText}>Home</Text>
+          </TouchableOpacity>
+        </View>
+        <View style={styles.headerDivider} />
+      </View>
 
       {/* Main Content */}
-      <ScrollView contentContainerStyle={styles.mainContent}>
-        <Animatable.View animation="fadeInUp" duration={1200} style={styles.descriptionBox}>
-          <View style={styles.descriptionContent}>
-            <View style={styles.textSection}>
-              <Animatable.Text animation="fadeIn" delay={500} style={styles.descriptionText}>
-                The Chemical Industries Education & Training Authority (CHIETA) is a statutory body that was established by
-                The Skills Development Act 97 of 1998. Our purpose as a SETA is to facilitate skills development in the
-                chemical industries sector and to ensure that skills needs are identified and addressed through a number of
-                initiatives by the SETA and the sector.
-              </Animatable.Text>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.mainContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Section */}
+        <Animatable.View animation="fadeInUp" duration={1000} style={styles.heroSection}>
+          <View style={styles.heroContent}>
+            <View style={styles.heroText}>
+              <Text style={styles.heroTitle}>Welcome to CHIETA</Text>
+              <Text style={styles.heroDescription}>
+                Facilitating skills development in the chemical industry.
+              </Text>
             </View>
-            <View style={styles.imageSection}>
+            <View style={styles.heroImageContainer}>
               <Image
                 source={require('../assets/images/who_we_are.png')}
-                style={styles.descriptionImage}
+                style={styles.heroImage}
                 resizeMode="contain"
               />
             </View>
           </View>
-          {/* <Animatable.Image
-            animation="rotate"
-            iterationCount={30}
-            delay={100}
-            source={require('../assets/images/chieta_logo.jpg')}
-            style={styles.logo}
-          /> */}
         </Animatable.View>
 
-        {/* Latest Content */}
-        <Text style={styles.latestHeader}>Latest Updates</Text>
-        <View style={styles.latestContent}>
-          <TouchableOpacity
-            style={styles.latestItem}
-            onPress={() => handleOpenLink('https://chieta.org.za/?s=Discretionary+Grants')}
-          >
-            <Ionicons name="link-outline" size={20} color="#3A0A53" />
-            <Text style={styles.latestText}>
-              Discretionary Grants – Strategic Projects and Learning Programmes (2025/2026 Cycle 1)
-            </Text>
-          </TouchableOpacity>
+        {/* Stats Cards */}
+        <Animatable.View animation="fadeInUp" delay={300} duration={1000} style={styles.statsContainer}>
+          <View style={styles.statsCard}>
+            <Ionicons name="people" size={28} color="#4A90E2" />
+            <Text style={styles.statsNumber}>10K+</Text>
+            <Text style={styles.statsLabel}>Learners Trained</Text>
+          </View>
+          <View style={styles.statsCard}>
+            <Ionicons name="business" size={28} color="#7ED321" />
+            <Text style={styles.statsNumber}>500+</Text>
+            <Text style={styles.statsLabel}>Partner Companies</Text>
+          </View>
+          <View style={styles.statsCard}>
+            <Ionicons name="trophy" size={28} color="#F5A623" />
+            <Text style={styles.statsNumber}>25+</Text>
+            <Text style={styles.statsLabel}>Years Experience</Text>
+          </View>
+        </Animatable.View>
 
-          <TouchableOpacity
-            style={styles.latestItem}
-            onPress={() => handleOpenLink('https://chieta.org.za/?s=ssp')}
-          >
-            <Ionicons name="link-outline" size={20} color="#3A0A53" />
-            <Text style={styles.latestText}>CHIETA SSP</Text>
-          </TouchableOpacity>
+        {/* Latest Updates Section */}
+        <Animatable.View animation="fadeInUp" delay={600} duration={1000} style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="newspaper" size={24} color="#2C0A40" />
+            <Text style={styles.sectionTitle}>Latest Updates</Text>
+          </View>
+          
+          <View style={styles.updatesContainer}>
+            <TouchableOpacity
+              style={styles.updateCard}
+              onPress={() => showRedirectConfirmation('https://chieta.org.za/?s=Discretionary+Grants')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.updateIconContainer}>
+                <Ionicons name="gift" size={24} color="#4A90E2" />
+              </View>
+              <View style={styles.updateContent}>
+                <Text style={styles.updateTitle}>Discretionary Grants</Text>
+                <Text style={styles.updateDescription}>
+                  Strategic Projects and Learning Programmes (2025/2026 Cycle 1)
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.latestItem}
-            onPress={() => handleOpenLink('https://chieta.org.za/?s=Training+Workshops')}
-          >
-            <Ionicons name="link-outline" size={20} color="#3A0A53" />
-            <Text style={styles.latestText}>Upcoming Training Workshops</Text>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.updateCard}
+              onPress={() => showRedirectConfirmation('https://chieta.org.za/?s=ssp')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.updateIconContainer}>
+                <Ionicons name="document-text" size={24} color="#7ED321" />
+              </View>
+              <View style={styles.updateContent}>
+                <Text style={styles.updateTitle}>CHIETA SSP</Text>
+                <Text style={styles.updateDescription}>
+                  Sector Skills Plan Documentation
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.latestItem}
-            onPress={() => handleOpenLink('https://chieta.org.za/resource-center/annual-reports/')}
-          >
-            <Ionicons name="link-outline" size={20} color="#3A0A53" />
-            <Text style={styles.latestText}>Annual Reports</Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              style={styles.updateCard}
+              onPress={() => showRedirectConfirmation('https://chieta.org.za/?s=Training+Workshops')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.updateIconContainer}>
+                <Ionicons name="calendar" size={24} color="#F5A623" />
+              </View>
+              <View style={styles.updateContent}>
+                <Text style={styles.updateTitle}>Training Workshops</Text>
+                <Text style={styles.updateDescription}>
+                  Upcoming professional development sessions
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.updateCard}
+              onPress={() => showRedirectConfirmation('https://chieta.org.za/resource-center/annual-reports/')}
+              activeOpacity={0.8}
+            >
+              <View style={styles.updateIconContainer}>
+                <Ionicons name="bar-chart" size={24} color="#D0021B" />
+              </View>
+              <View style={styles.updateContent}>
+                <Text style={styles.updateTitle}>Annual Reports</Text>
+                <Text style={styles.updateDescription}>
+                  Performance and impact documentation
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color="#999" />
+            </TouchableOpacity>
+          </View>
+        </Animatable.View>
       </ScrollView>
 
-      {/* Footer */}
-      <View style={styles.footer}>
-        {/* <View style={styles.footerButtons}>
-          <TouchableOpacity style={styles.footerButton} onPress={onNavigateToLatest}>
-            <Ionicons name="newspaper-outline" size={20} color="#fff" style={styles.footerButtonIcon} />
-            <Text style={styles.footerButtonText}>Latest</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.footerButton} onPress={onNavigateToHome}>
-            <Ionicons name="log-in-outline" size={20} color="#fff" style={styles.footerButtonIcon} />
-            <Text style={styles.footerButtonText}>Home</Text>
-          </TouchableOpacity>
-        </View> */}
-        <Text style={styles.footerText}>
-          Tel: 087 357 6608 | 011 628 7000 | Anti-Fraud Line: 0800 333 120
-        </Text>
-        <Text style={styles.footerText}>© 2025, CHIETA. All rights reserved.</Text>
-      </View>
+      {/* Enhanced Chatbot FAB */}
+      <Animatable.View animation="pulse" iterationCount="infinite" duration={2000}>
+        <TouchableOpacity style={styles.chatbotFab} onPress={() => setModalVisible(true)}>
+          <Ionicons name="chatbubble-ellipses" size={28} color="#FFFFFF" />
+          <View style={styles.chatbotBadge}>
+            <Text style={styles.chatbotBadgeText}>!</Text>
+          </View>
+        </TouchableOpacity>
+      </Animatable.View>
 
-      {/* Chatbot Icon */}
-      <TouchableOpacity style={styles.chatbotIcon} onPress={() => setModalVisible(true)}>
-        <Ionicons name="chatbubble-ellipses-outline" size={28} color="#fff" />
-      </TouchableOpacity>
-
-      {/* Chatbot Modal */}
+      {/* Enhanced Chatbot Modal */}
       <Modal
         animationType="slide"
         transparent={true}
@@ -198,24 +259,47 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            {/* Close Button */}
-            <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
-              <Ionicons name="close-circle-outline" size={30} color="#CE8946" />
-            </TouchableOpacity>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <View style={styles.modalHeaderLeft}>
+                <View style={styles.chatbotAvatar}>
+                  <Ionicons name="chatbubble-ellipses" size={24} color="#FFFFFF" />
+                </View>
+                <View>
+                  <Text style={styles.modalTitle}>CHIETA Assistant</Text>
+                  <Text style={styles.modalSubtitle}>How can I help you today?</Text>
+                </View>
+              </View>
+              <TouchableOpacity style={styles.closeButton} onPress={() => setModalVisible(false)}>
+                <Ionicons name="close" size={28} color="#666" />
+              </TouchableOpacity>
+            </View>
 
-            <Text style={styles.modalText}>Chat with us!</Text>
-
-            {/* FAQ Section */}
-            <View style={styles.faqContainer}>
-              <Text style={styles.faqHeader}>Click to check out available programs</Text>
-              <ScrollView style={{ padding: 20 }}>
-                <Button title="Our Available Bursaries Programs" onPress={() => fetchPrograms('bursaries')} />
-                <Button title="Our Available Learnership Grants" onPress={() => fetchPrograms('learnership grants')} />
-                <Button title="Our Available Work-Based Learning Programs" onPress={() => fetchPrograms('work-based learning programs')} />
-                <Button title="Our Available Apprenticeships Grant Programs" onPress={() => fetchPrograms('apprenticeship grants')} />
-                {loading && <Text>Loading...</Text>}
-                {response && <Text style={{ marginTop: 20 }}>{response}</Text>}
+            {/* Program Buttons */}
+            <View style={styles.programButtonsContainer}>
+              <Text style={styles.programButtonsTitle}>Explore Programs</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.programButtonsScroll}>
+                {programButtons.map((program, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[styles.programButton, { backgroundColor: program.color + '1A', borderColor: program.color }]}
+                    onPress={() => fetchPrograms(program.type)}
+                  >
+                    <Ionicons name={program.icon} size={20} color={program.color} />
+                    <Text style={[styles.programButtonText, { color: program.color }]}>{program.title}</Text>
+                  </TouchableOpacity>
+                ))}
               </ScrollView>
+              {loading && (
+                <View style={styles.loadingContainer}>
+                  <Text style={styles.loadingText}>Loading programs...</Text>
+                </View>
+              )}
+              {response && (
+                <View style={styles.responseContainer}>
+                  <Text style={styles.responseText}>{response}</Text>
+                </View>
+              )}
             </View>
 
             {/* Chat Messages */}
@@ -229,7 +313,9 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
                     item.sender === 'user' ? styles.userBubble : styles.botBubble,
                   ]}
                 >
-                  <Text style={styles.messageText}>{item.text}</Text>
+                  <Text style={[styles.messageText, item.sender === 'user' ? styles.userMessageText : styles.botMessageText]}>
+                    {item.text}
+                  </Text>
                 </View>
               )}
               style={styles.messageList}
@@ -237,322 +323,554 @@ const WelcomeScreen = ({ onNavigateToLogin, onNavigateToLatest, onNavigateToHome
               keyboardShouldPersistTaps="handled"
             />
 
-            {/* Input Field */}
+            {/* Enhanced Input Field */}
             <View style={styles.inputContainer}>
-              <TextInput
-                style={styles.input}
-                placeholder="Type a message..."
-                value={userInput}
-                onChangeText={setUserInput}
-                onSubmitEditing={handleSend}
-              />
-              <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-                <Ionicons name="send-outline" size={24} color="#fff" />
+              <View style={styles.inputWrapper}>
+                <TextInput
+                  style={styles.input}
+                  placeholder="Type your message..."
+                  placeholderTextColor="#999"
+                  value={userInput}
+                  onChangeText={setUserInput}
+                  onSubmitEditing={handleSend}
+                  multiline
+                />
+                <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+                  <Ionicons name="send" size={20} color="#FFFFFF" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Redirect Confirmation Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={redirectModalVisible}
+        onRequestClose={cancelRedirect}
+      >
+        <View style={styles.redirectModalOverlay}>
+          <View style={styles.redirectModalContent}>
+            <View style={styles.redirectModalHeader}>
+              <Ionicons name="globe" size={32} color="#FF8F00" />
+              <Text style={styles.redirectModalTitle}>External Website</Text>
+            </View>
+            
+            <View style={styles.redirectModalBody}>
+              <Text style={styles.redirectModalText}>
+                You are about to be redirected to the official CHIETA website. This will open in your web browser.
+              </Text>
+              <Text style={styles.redirectModalSubtext}>
+                Do you wish to continue?
+              </Text>
+            </View>
+
+            <View style={styles.redirectModalButtons}>
+              <TouchableOpacity 
+                style={[styles.redirectButton, styles.cancelButton]} 
+                onPress={cancelRedirect}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.redirectButton, styles.confirmButton]} 
+                onPress={confirmRedirect}
+              >
+                <Text style={styles.confirmButtonText}>Continue</Text>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    // backgroundColor: '#fff',
+    backgroundColor: '#F8F9FA',
   },
   header: {
-    flexDirection: 'row',
-    // justifyContent: 'space-between',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#3A0A53',
-    padding: 9,
-    width: '100%',
-    zIndex: 10
+    backgroundColor: '#2C0A40',
+    paddingTop: 10,
+    paddingBottom: 15,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
   },
-  headerText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
-    textAlign: 'center',
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 20,
   },
   headerLogo: {
-    width: 200,
-    height: 70,
-    marginRight: 10,
+    width: 180,
+    height: 60,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: 'white',
+    padding: 4,
   },
-  logo: {
-    width: 150,
-    height: 50,
-  },
-  headerRight: {
+  homeButton: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  homeButtonText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 14,
+    marginLeft: 6,
+  },
+  headerDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginTop: 10,
+  },
+  scrollView: {
+    flex: 1,
   },
   mainContent: {
-    flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#F5F5F5',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop: -10,
+    paddingBottom: 100,
+  },
+  heroSection: {
+    backgroundColor: '#FFFFFF',
+    margin: 20,
+    borderRadius: 16,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 1,
-    zIndex: 1,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  descriptionBox: {
-    alignItems: 'center',
-    marginVertical: 20,
-    padding: 20,
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
-    borderTopWidth: 2,
-    borderLeftWidth: 2,
-    borderColor: '#ff8f00',
-  },
-  latestHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#3A0A53',
-    marginVertical: 15,
-    alignSelf: 'flex-start',
-  },
-  latestContent: {
-    width: '100%',
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    padding: 15,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 2,
-  },
-  latestItem: {
+  heroContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
   },
-  latestText: {
-    marginLeft: 10,
+  heroText: {
+    flex: 2,
+    paddingRight: 16,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#2C0A40',
+    marginBottom: 4,
+  },
+  heroSubtitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FF8F00',
+    marginBottom: 12,
+  },
+  heroDescription: {
     fontSize: 14,
-    color: '#3A0A53',
+    color: '#666',
+    lineHeight: 20,
+  },
+  heroImageContainer: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroImage: {
+    width: 120,
+    height: 120,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  statsCard: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    padding: 16,
+    alignItems: 'center',
+    marginHorizontal: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  statsNumber: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2C0A40',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  statsLabel: {
+    fontSize: 12,
+    color: '#666',
+    textAlign: 'center',
+  },
+  section: {
+    marginHorizontal: 20,
+    marginBottom: 24,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2C0A40',
+    marginLeft: 8,
+  },
+  updatesContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    elevation: 4,
+  },
+  updateCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  updateIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F8F9FA',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  updateContent: {
+    flex: 1,
+  },
+  updateTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C0A40',
+    marginBottom: 4,
+  },
+  updateDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 18,
   },
   footer: {
-    backgroundColor: '#3A0A53',
-    paddingVertical: 20,
-    alignItems: 'center',
+    backgroundColor: '#2C0A40',
+    paddingVertical: 16,
   },
-  footerButtons: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    width: '100%',
-    marginBottom: 10,
-  },
-  footerButton: {
-    // backgroundColor: '#b78a28',
-    backgroundColor: '#d08c1c',
-    // borderBottomWidth: 4,
-    // borderBottomColor: '#fff',
-    borderRadius: 5,
-    paddingVertical: 10,
+  footerContent: {
     paddingHorizontal: 20,
-    marginHorizontal: 10,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
-    transform: [{ translateY: -2 }],
-    borderBottomWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#fff',
   },
-  footerButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 'bold',
-    textShadowColor: 'rgba(0, 0, 0, 0.3)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 2,
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   footerText: {
-    color: '#fff',
-    fontSize: 12,
+    color: '#FFFFFF',
+    fontSize: 13,
+    marginLeft: 8,
+    opacity: 0.9,
   },
-  chatbotIcon: {
+  copyrightText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 8,
+    opacity: 0.7,
+  },
+  chatbotFab: {
     position: 'absolute',
     bottom: 30,
-    right: 30,
-    // backgroundColor: '#CE8946',
-    backgroundColor: '#ff8f00',
-    borderRadius: 50,
-    padding: 16,
+    right: 20,
+    width: 56,
+    height: 56,
+    backgroundColor: '#FF8F00',
+    borderRadius: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: '#FF8F00',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.4,
-    shadowRadius: 10,
-    elevation: 8,
-    transform: [{ translateY: -2 }],
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 12,
+  },
+  chatbotBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 20,
+    height: 20,
+    backgroundColor: '#D0021B',
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: '#FFFFFF',
+  },
+  chatbotBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'flex-end',
   },
   modalContent: {
-    width: '90%',
-    height: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    maxHeight: '90%',
+    paddingBottom: 34,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     padding: 20,
-    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  messageList: {
-    flex: 1,
-    marginVertical: 10,
-  },
-  messageBubble: {
-    padding: 10,
-    borderRadius: 10,
-    marginBottom: 5,
-    maxWidth: '80%',
-  },
-  userBubble: {
-    backgroundColor: '#CE8946',
-    alignSelf: 'flex-end',
-  },
-  botBubble: {
-    backgroundColor: '#E0E0E0',
-    alignSelf: 'flex-start',
-  },
-  messageText: {
-    color: '#000',
-  },
-  inputContainer: {
+  modalHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
   },
-  input: {
-    flex: 1,
-    borderColor: '#ccc',
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 15,
+  chatbotAvatar: {
+    width: 40,
     height: 40,
-  },
-  sendButton: {
-    marginLeft: 10,
-    backgroundColor: '#CE8946',
-    padding: 10,
+    backgroundColor: '#FF8F00',
     borderRadius: 20,
-  },
-  closeButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    zIndex: 1,
-  },
-  faqContainer: {
-    paddingVertical: 10,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 10,
-    marginVertical: 10,
-  },
-  faqHeader: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#3A0A53',
-    marginBottom: 10,
-  },
-  loadingText: {
-    color: '#CE8946',
-    fontSize: 16,
-    marginTop: 10,
-  },
-  responseText: {
-    color: '#3A0A53',
-    fontSize: 16,
-    marginTop: 10,
-    textAlign: 'center',
-  },
-  descriptionContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    width: '100%',
-  },
-  textSection: {
-    flex: 2,
-    paddingRight: 10,
-  },
-  imageSection: {
-    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
-  descriptionImage: {
-    width: '120%',
-    height: 160,
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#2C0A40',
   },
-  descriptionText: {
+  modalSubtitle: {
     fontSize: 14,
-    color: '#333',
-    textAlign: 'left',
+    color: '#666',
+    marginTop: 2,
   },
-  logoContainer: {
-    backgroundColor: '#fff',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
-    zIndex: 5,
-  },
-  logoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  closeButton: {
+    width: 40,
+    height: 40,
     alignItems: 'center',
-    paddingHorizontal: 10,
+    justifyContent: 'center',
+    borderRadius: 20,
+    backgroundColor: '#F8F9FA',
   },
-  homeIcon: {
-    padding: 10,
+  programButtonsContainer: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  homeIconWrapper: {
+  programButtonsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#2C0A40',
+    marginBottom: 12,
+  },
+  programButtonsScroll: {
+    marginBottom: 12,
+  },
+  programButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    paddingVertical: 6,
+    paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: '#3A0A53',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 4,
+    marginRight: 8,
+    minWidth: 140,
   },
-  homeIconText: {
+  programButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
     marginLeft: 6,
-    color: '#3A0A53',
-    fontWeight: 'bold',
+  },
+  loadingContainer: {
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FF8F00',
     fontSize: 14,
+    fontWeight: '500',
+  },
+  responseContainer: {
+    padding: 12,
+    backgroundColor: '#F8F9FA',
+    borderRadius: 8,
+    marginTop: 8,
+  },
+  responseText: {
+    color: '#2C0A40',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  messageList: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+  },
+  messageBubble: {
+    padding: 12,
+    borderRadius: 16,
+    marginBottom: 8,
+    maxWidth: '80%',
+  },
+  userBubble: {
+    backgroundColor: '#FF8F00',
+    alignSelf: 'flex-end',
+    borderBottomRightRadius: 4,
+  },
+  botBubble: {
+    backgroundColor: '#F0F0F0',
+    alignSelf: 'flex-start',
+    borderBottomLeftRadius: 4,
+  },
+  messageText: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  userMessageText: {
+    color: '#FFFFFF',
+  },
+  botMessageText: {
+    color: '#2C0A40',
+  },
+  inputContainer: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: '#F8F9FA',
+    borderRadius: 24,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  input: {
+    flex: 1,
+    fontSize: 16,
+    color: '#2C0A40',
+    maxHeight: 100,
+    paddingVertical: 8,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#FF8F00',
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 8,
+  },
+  redirectModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  redirectModalContent: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    padding: 24,
+    width: '100%',
+    maxWidth: 400,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 16,
+    elevation: 8,
+  },
+  redirectModalHeader: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  redirectModalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#2C0A40',
+    marginTop: 12,
+  },
+  redirectModalBody: {
+    marginBottom: 24,
+  },
+  redirectModalText: {
+    fontSize: 16,
+    color: '#2C0A40',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 12,
+  },
+  redirectModalSubtext: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+  redirectModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  redirectButton: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#F8F9FA',
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+  },
+  confirmButton: {
+    backgroundColor: '#FF8F00',
+  },
+  cancelButtonText: {
+    color: '#666',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  confirmButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
 });
 

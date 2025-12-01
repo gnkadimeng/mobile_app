@@ -2,8 +2,16 @@ npm install express pg cors
 npm install expo-router@4.0.19
 npm install
 npx expo install expo@~52.0.42 expo-router@~4.0.20 expo-system-ui@~4.0.9 react-native@0.76.9
-npx expo install expo@~52.0.46 expo-splash-screen@~0.29.24
+npm expo install expo@~52.0.46 expo-splash-screen@~0.29.24
+npm uninstall react react-dom react-test-renderer
+
+$env:REACT_NATIVE_PACKAGER_HOSTNAME="192.168.8.26"
+
 
 
 V@lidation@uj2024
 SSDD_Postgres
+
+$env:REACT_NATIVE_PACKAGER_HOSTNAME="eb4adf91e02a.ngrok-free.app"
+
+$env:REACT_NATIVE_PACKAGER_HOSTNAME="https://mobile-app-api-p2o5.onrender.com"
