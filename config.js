@@ -49,7 +49,16 @@ const API_CONFIG = {
     DOCUMENTS_STATS: "/documents-stats/:email",
     
     // Legacy endpoints (keep for compatibility)
-    ORGANISATION_CONTRACTS: "/organisation-contracts"
+    ORGANISATION_CONTRACTS: "/organisation-contracts",
+    
+    // New endpoints for application details
+    MG_APPLICATION_DETAIL: "/mg-application-detail/:applicationNumber",
+    DG_APPLICATION_DETAIL: "/dg-application-detail/:applicationNumber",
+    ORG_DETAIL: "/organisation-detail/:sdlNo",
+    
+    // Document download endpoints
+    DOCUMENT_DOWNLOAD: "/download-document/:applicationNumber/:documentType",
+    DIRECT_DOWNLOAD: "/download/document/:filename"
   },
   
   // API Timeout settings
@@ -153,7 +162,21 @@ const getConfig = () => {
     buildDocumentsStatsURL: (email) => buildURL(API_CONFIG.ENDPOINTS.DOCUMENTS_STATS, { email }),
     
     // Legacy endpoints for compatibility
-    buildOrganisationsURL: (email) => buildURL(API_CONFIG.ENDPOINTS.ORGANISATION_APPLICATIONS, { email })
+    buildOrganisationsURL: (email) => buildURL(API_CONFIG.ENDPOINTS.ORGANISATION_APPLICATIONS, { email }),
+    
+    // New builders for application details
+    buildMGApplicationDetailURL: (applicationNumber) => 
+      buildURL(API_CONFIG.ENDPOINTS.MG_APPLICATION_DETAIL, { applicationNumber }),
+    buildDGApplicationDetailURL: (applicationNumber) => 
+      buildURL(API_CONFIG.ENDPOINTS.DG_APPLICATION_DETAIL, { applicationNumber }),
+    buildOrgDetailURL: (sdlNo) => 
+      buildURL(API_CONFIG.ENDPOINTS.ORG_DETAIL, { sdlNo }),
+    
+    // Enhanced download builders
+    buildDownloadDocumentURL: (applicationNumber, documentType) => 
+      buildURL(API_CONFIG.ENDPOINTS.DOCUMENT_DOWNLOAD, { applicationNumber, documentType }),
+    buildDirectDownloadURL: (filename) => 
+      buildURL(API_CONFIG.ENDPOINTS.DIRECT_DOWNLOAD, { filename })
   };
 };
 

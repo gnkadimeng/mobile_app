@@ -234,13 +234,13 @@ const PortalModalContent = ({ onPortalSelect, onClose }) => {
 
 export default function App() {
   const [isSplashVisible, setIsSplashVisible] = useState(true);
-  const [currentScreen, setCurrentScreen] = useState("Welcome");
+  const [currentScreen, setCurrentScreen] = useState("Home"); // Changed from "Welcome" to "Home"
   const [userEmail, setUserEmail] = useState("");
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [userData, setUserData] = useState(null);
   const [showPortalModal, setShowPortalModal] = useState(false);
-  const [screenHistory, setScreenHistory] = useState(["Welcome"]);
+  const [screenHistory, setScreenHistory] = useState(["Home"]); // Changed from ["Welcome"] to ["Home"]
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -253,7 +253,7 @@ export default function App() {
   // Handle Android back button
   useEffect(() => {
     const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-      if (currentScreen === "Welcome" || currentScreen === "Home") {
+      if (currentScreen === "Home") {
         BackHandler.exitApp();
         return true;
       } else if (isLoggedIn) {
@@ -277,10 +277,6 @@ export default function App() {
     setCurrentScreen("Login");
   };
 
-  const handleNavigateFromWelcome = () => {
-    setCurrentScreen("Login");
-  };
-
   const handleNavigateToHome = () => {
     setCurrentScreen("Home");
   };
@@ -300,10 +296,10 @@ export default function App() {
           setCurrentScreen("SSDDScreen");
           break;
         default:
-          setCurrentScreen("SSDDScreen");
+          setCurrentScreen("Home");
       }
     } else {
-      setCurrentScreen("Welcome");
+      setCurrentScreen("Home");
     }
   };
 
@@ -335,9 +331,9 @@ export default function App() {
         setCurrentScreen("SSDDScreen");
         break;
       default:
-        console.warn("Unknown role:", userData.accounttype, "Defaulting to Student");
-        setUserRole("Learner");
-        setCurrentScreen("SSDDScreen");
+        console.warn("Unknown role:", userData.accounttype, "Defaulting to Home");
+        setUserRole("");
+        setCurrentScreen("Home");
     }
   };
 
@@ -377,7 +373,7 @@ export default function App() {
     setIsLoggedIn(false);
     setUserRole("");
     setUserData(null);
-    setCurrentScreen("Welcome");
+    setCurrentScreen("Home");
     setShowPortalModal(false);
     
     setTimeout(() => {
@@ -444,17 +440,18 @@ export default function App() {
   // Render appropriate screen based on currentScreen state
   const renderScreen = () => {
     const commonProps = {
-      onNavigateBack: isLoggedIn ? handleLogout : goBack,
+      onNavigateBack: isLoggedIn ? goBack : goBack, // Always use goBack for navigation
     };
 
     switch (currentScreen) {
-      case "Welcome":
+      case "Home":
         return (
-          <WelcomeScreen
+          <HomeScreen
             {...commonProps}
             onNavigateToLogin={() => navigateToScreen("Login")}
-            onNavigateToHome={() => navigateToScreen("Home")}
-            openWebsite={openWebsite}
+            userEmail={userEmail}
+            isLoggedIn={isLoggedIn}
+            userRole={getUserRoleDisplayName()}
           />
         );
       
@@ -463,7 +460,7 @@ export default function App() {
           <LoginScreen
             {...commonProps}
             onLoginSuccess={handleLoginSuccess}
-            onNavigateToRegister={handleNavigateToRegister}
+            onNavigateToRegister={() => navigateToScreen("Register")}
           />
         );
       
@@ -507,7 +504,17 @@ export default function App() {
           />
         );
       
-      case "Home":
+      case "Welcome":
+        return (
+          <WelcomeScreen
+            {...commonProps}
+            onNavigateToLogin={() => navigateToScreen("Login")}
+            onNavigateToHome={() => navigateToScreen("Home")}
+            openWebsite={openWebsite}
+          />
+        );
+      
+      default:
         return (
           <HomeScreen
             {...commonProps}
@@ -515,16 +522,6 @@ export default function App() {
             userEmail={userEmail}
             isLoggedIn={isLoggedIn}
             userRole={getUserRoleDisplayName()}
-          />
-        );
-      
-      default:
-        return (
-          <WelcomeScreen
-            {...commonProps}
-            onNavigateToLogin={() => navigateToScreen("Login")}
-            onNavigateToHome={() => navigateToScreen("Home")}
-            openWebsite={openWebsite}
           />
         );
     }

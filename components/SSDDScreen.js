@@ -9,31 +9,32 @@ import {
   TouchableOpacity,
   Linking,
   Dimensions,
-  Modal,
   StatusBar,
   SafeAreaView,
+  Alert,
+  Platform,
 } from "react-native";
 import { Card, DataTable } from "react-native-paper";
 import { MaterialIcons, FontAwesome5, Ionicons, Feather } from "@expo/vector-icons";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import API_CONFIG, { ENDPOINTS } from "../config"; // Import the config
+import API_CONFIG, { ENDPOINTS } from "../config";
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
 // CHIETA brand colors
 const CHIETA_COLORS = {
-  primary: '#2C0A40',       // Dark purple
-  secondary: '#FF8F00',     // Orange
-  accent: '#6A0DAD',        // Purple
-  lightBg: '#F8F9FA',       // Light background
-  darkText: '#2C3E50',      // Dark text
-  lightText: '#FFFFFF',     // White text
-  success: '#4CAF50',       // Green
-  warning: '#F59E0B',       // Yellow
-  danger: '#F44336',        // Red
-  info: '#2196F3',          // Blue
-  gray: '#6B7280',          // Gray
+  primary: '#2C0A40',
+  secondary: '#FF8F00',
+  accent: '#6A0DAD',
+  lightBg: '#F8F9FA',
+  darkText: '#2C3E50',
+  lightText: '#FFFFFF',
+  success: '#4CAF50',
+  warning: '#F59E0B',
+  danger: '#F44336',
+  info: '#2196F3',
+  gray: '#6B7280',
 };
 
 const SSDDScreen = ({ onNavigateBack, email }) => {
@@ -42,15 +43,14 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
   const [studentStatus, setStudentStatus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState("students");
-  const [apiStatus, setApiStatus] = useState('checking'); // 'checking', 'online', 'offline'
+  const [apiStatus, setApiStatus] = useState('checking');
   const [error, setError] = useState(null);
-
-  // Modal state variables
-  const [selectedStudent, setSelectedStudent] = useState(null);
-  const [selectedStatus, setSelectedStatus] = useState(null);
-  const [selectedDocument, setSelectedDocument] = useState(null);
+  const [downloading, setDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState({});
 
   useEffect(() => {
+    console.log('🚀 SSDDScreen mounted with email:', email);
+    
     if (email) {
       loadData();
     }
@@ -77,7 +77,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
     }
   };
 
-  // Check if backend API is available
   const checkApiHealth = async () => {
     try {
       const config = API_CONFIG();
@@ -97,7 +96,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
   const fetchStudents = async (email) => {
     try {
       const config = API_CONFIG();
-      // Use the buildURL method from your config
       const url = config.buildStudentsURL ? config.buildStudentsURL(email) : `${config.BASE_URL}${ENDPOINTS.STUDENTS}/${email}`;
       
       console.log('📡 Fetching students from:', url);
@@ -115,7 +113,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
   const fetchStudentStatus = async (email) => {
     try {
       const config = API_CONFIG();
-      // Use the buildURL method from your config
       const url = config.buildStudentStatusURL ? config.buildStudentStatusURL(email) : `${config.BASE_URL}${ENDPOINTS.STUDENT_STATUS}/${email}`;
       
       console.log('📡 Fetching student status from:', url);
@@ -133,13 +130,24 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
   const fetchDocuments = async (email) => {
     try {
       const config = API_CONFIG();
-      // Use the buildURL method from your config
       const url = config.buildDocumentsURL ? config.buildDocumentsURL(email) : `${config.BASE_URL}${ENDPOINTS.DOCUMENTS}/${email}`;
       
       console.log('📡 Fetching documents from:', url);
       const response = await axios.get(url, { timeout: 15000 });
       
-      console.log('✅ Documents data received:', response.data);
+      console.log('✅ Documents data received:');
+      console.log('  Total documents:', response.data.length);
+      
+      if (Array.isArray(response.data)) {
+        console.log('🔍 Document details:');
+        response.data.forEach((doc, idx) => {
+          console.log(`  Document ${idx + 1}:`);
+          console.log(`    Name: ${doc.file_name}`);
+          console.log(`    URL: ${doc.file_url || doc.download_url}`);
+          console.log(`    Type: ${doc.document_type}`);
+        });
+      }
+      
       setDocuments(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("❌ Error fetching documents:", error);
@@ -148,15 +156,154 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
     }
   };
 
-  const handleDownload = (documentUrl) => {
-    if (!documentUrl) {
-      alert("Downloaded Successfully.");
+  // FIXED: Simplified download function
+  const handleDownload = async (document, index) => {
+    console.log('📥 Attempting to download:', document.file_name);
+    
+    if (downloading) return;
+    
+    setDownloading(true);
+    setDownloadProgress(prev => ({ ...prev, [index]: 0 }));
+    
+    if (!document || !document.file_name) {
+      Alert.alert("Error", "Document filename not available.");
+      setDownloading(false);
+      setDownloadProgress(prev => ({ ...prev, [index]: null }));
       return;
     }
-    Linking.openURL(documentUrl).catch((err) => {
-      console.error("Error opening document:", err);
-      alert("Failed to open the document.");
-    });
+
+    try {
+      // Get the download URL - prefer direct URLs from backend
+      let downloadUrl = document.direct_download_url || document.download_url || document.file_url;
+      
+      if (!downloadUrl) {
+        // Construct the download URL if not provided by backend
+        const config = API_CONFIG();
+        const encodedFilename = encodeURIComponent(document.file_name);
+        downloadUrl = `${config.BASE_URL}/download/document/${encodedFilename}`;
+      }
+      
+      console.log('📊 Download info:');
+      console.log('  File name:', document.file_name);
+      console.log('  Download URL:', downloadUrl);
+      
+      // Test if URL can be opened
+      const canOpen = await Linking.canOpenURL(downloadUrl);
+      console.log('  Can open URL?', canOpen);
+      
+      if (canOpen) {
+        console.log('✅ Opening download URL...');
+        
+        // Update progress to show download started
+        setDownloadProgress(prev => ({ ...prev, [index]: 50 }));
+        
+        // Open the URL - this should trigger the download
+        const supported = await Linking.openURL(downloadUrl);
+        
+        if (supported) {
+          setDownloadProgress(prev => ({ ...prev, [index]: 100 }));
+          setTimeout(() => {
+            Alert.alert("Download Started", `Downloading: ${document.file_name}`);
+            setDownloadProgress(prev => ({ ...prev, [index]: null }));
+          }, 500);
+        } else {
+          Alert.alert("Error", "Cannot open URL on this device");
+          setDownloadProgress(prev => ({ ...prev, [index]: null }));
+        }
+      } else {
+        Alert.alert(
+          "Cannot Open URL", 
+          "The download URL cannot be opened directly. Trying alternative method...",
+          [{ text: "OK" }]
+        );
+        
+        // Try alternative: Show the URL for manual download
+        Alert.alert(
+          "Download Link",
+          `File: ${document.file_name}\n\nCopy this URL to download: ${downloadUrl}`,
+          [
+            { text: "Copy URL", onPress: () => copyToClipboard(downloadUrl) },
+            { text: "Open in Browser", onPress: () => Linking.openURL(downloadUrl) },
+            { text: "Cancel" }
+          ]
+        );
+        setDownloadProgress(prev => ({ ...prev, [index]: null }));
+      }
+    } catch (error) {
+      console.error('❌ Download error:', error);
+      
+      Alert.alert(
+        "Download Error", 
+        `Failed to download: ${document.file_name}\n\nError: ${error.message}`,
+        [
+          { 
+            text: "Try Direct Download", 
+            onPress: () => {
+              // Show direct download instructions
+              const config = API_CONFIG();
+              const encodedFilename = encodeURIComponent(document.file_name);
+              const directUrl = `${config.BASE_URL}/download/document/${encodedFilename}`;
+              
+              Alert.alert(
+                "Direct Download",
+                `Open this link in your browser:\n\n${directUrl}`,
+                [
+                  { text: "Copy Link", onPress: () => copyToClipboard(directUrl) },
+                  { text: "OK" }
+                ]
+              );
+            }
+          },
+          { text: "Cancel" }
+        ]
+      );
+      setDownloadProgress(prev => ({ ...prev, [index]: null }));
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  // Helper function to copy to clipboard
+  const copyToClipboard = async (text) => {
+    // You'll need to install and use @react-native-clipboard/clipboard
+    // For now, we'll just show an alert
+    Alert.alert("Copied!", "URL copied to clipboard");
+    console.log("Would copy to clipboard:", text);
+  };
+
+  const testServerConnection = async () => {
+    try {
+      const config = API_CONFIG();
+      const testUrl = `${config.BASE_URL}/health`;
+      console.log('🧪 Testing server connection:', testUrl);
+      
+      const response = await axios.get(testUrl, { timeout: 5000 });
+      console.log('✅ Server connection test successful:', response.data);
+      Alert.alert("Server Test", "Server is responding correctly.");
+    } catch (error) {
+      console.error('❌ Server test failed:', error);
+      Alert.alert("Server Test Failed", `Cannot reach server: ${error.message}`);
+    }
+  };
+
+  const testUploadsDirectory = async () => {
+    try {
+      const config = API_CONFIG();
+      const url = `${config.BASE_URL}/uploads-check`;
+      console.log('🔍 Testing uploads directory:', url);
+      
+      const response = await axios.get(url, { timeout: 5000 });
+      console.log('📁 Uploads directory check:', response.data);
+      
+      Alert.alert(
+        "Uploads Directory Info",
+        `Directory: ${response.data.uploadsDirectory}\nExists: ${response.data.exists}\nFiles: ${response.data.fileCount}`,
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error('❌ Uploads directory test failed:', error);
+      Alert.alert("Error", `Failed to check uploads: ${error.message}`);
+    }
   };
 
   const handleLogout = () => onNavigateBack();
@@ -195,7 +342,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
         <View style={styles.apiStatusContainer}>
           <MaterialIcons name="error-outline" size={16} color={CHIETA_COLORS.danger} />
           <Text style={[styles.apiStatusText, { color: CHIETA_COLORS.danger }]}>
-            Backend offline - using: {config.BASE_URL}
+            Backend offline
           </Text>
         </View>
       );
@@ -205,43 +352,21 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
       <View style={styles.apiStatusContainer}>
         <MaterialIcons name="check-circle" size={16} color={CHIETA_COLORS.success} />
         <Text style={[styles.apiStatusText, { color: CHIETA_COLORS.success }]}>
-          Backend online - {config.BASE_URL.replace('https://', '').replace('http://', '')}
-        </Text>
-      </View>
-    );
-  };
-
-  const renderDataCount = () => {
-    const counts = {
-      students: students.length,
-      status: studentStatus.length,
-      documents: documents.length
-    };
-    
-    return (
-      <View style={styles.dataCountContainer}>
-        <Text style={styles.dataCountText}>
-          Data: {counts.students} students, {counts.status} placements, {counts.documents} documents
+          Backend online
         </Text>
       </View>
     );
   };
 
   const renderActiveView = () => {
-    // Show connection error if API is offline and no data
     if (apiStatus === 'offline' && students.length === 0 && documents.length === 0 && studentStatus.length === 0) {
       return (
         <View style={styles.errorContainer}>
           <MaterialIcons name="cloud-off" size={64} color={CHIETA_COLORS.gray} />
           <Text style={styles.errorTitle}>Connection Issue</Text>
           <Text style={styles.errorMessage}>
-            Unable to connect to the backend server. Please check:
+            Unable to connect to the backend server.
           </Text>
-          <View style={styles.tipsContainer}>
-            <Text style={styles.tip}>• Ensure backend is running</Text>
-            <Text style={styles.tip}>• Check your internet connection</Text>
-            <Text style={styles.tip}>• Verify the API URL in config</Text>
-          </View>
           <TouchableOpacity 
             style={styles.retryButton}
             onPress={loadData}
@@ -252,7 +377,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
       );
     }
 
-    // Show general error
     if (error && students.length === 0 && documents.length === 0 && studentStatus.length === 0) {
       return (
         <View style={styles.errorContainer}>
@@ -271,225 +395,267 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
     switch (activeView) {
       case "students":
-        return (
-          <View style={styles.modernCard}>
-            <View style={styles.cardHeader}>
-              <Ionicons name="people" size={20} color={CHIETA_COLORS.accent} />
-              <Text style={styles.cardTitle}>Admin Decisions</Text>
-              {renderApiStatusIndicator()}
-            </View>
-            
-            {renderDataCount()}
-            
-            {students.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Ionicons name="document-text-outline" size={48} color={CHIETA_COLORS.gray} />
-                <Text style={styles.emptyStateText}>No admin decisions found</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  {apiStatus === 'offline' ? 'Backend connection required' : 'No data available for your account'}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.tableContainer}>
-                <DataTable>
-                  <DataTable.Header style={styles.tableHeaderRow}>
-                    <DataTable.Title style={styles.cellWrapper}>
-                      <Text style={styles.headerText}>Email</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper}>
-                      <Text style={styles.headerText}>Decision</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper} numeric>
-                      <Text style={styles.headerText}>Date</Text>
-                    </DataTable.Title>
-                  </DataTable.Header>
-                  
-                  {students.map((student, index) => (
-                    <DataTable.Row
-                      key={index}
-                      onPress={() => setSelectedStudent(student)}
-                      style={[styles.tableRow, index % 2 === 0 && styles.evenRow]}
-                    >
-                      <DataTable.Cell style={styles.cellWrapper}>
-                        <Text style={styles.cellText} numberOfLines={2}>
-                          {student.email || 'N/A'}
-                        </Text>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper}>
-                        {renderStatusBadge(student.decision_outcome)}
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper} numeric>
-                        <Text style={styles.cellText}>
-                          {student.decision_date ? new Date(student.decision_date).toLocaleDateString('en-GB') : "N/A"}
-                        </Text>
-                      </DataTable.Cell>
-                    </DataTable.Row>
-                  ))}
-                </DataTable>
-              </View>
-            )}
-          </View>
-        );
-
+        return renderStudentsView();
       case "student-status":
-        return (
-          <View style={styles.modernCard}>
-            <View style={styles.cardHeader}>
-              <FontAwesome5 name="building" size={20} color={CHIETA_COLORS.accent} />
-              <Text style={styles.cardTitle}>Placement Status</Text>
-              {renderApiStatusIndicator()}
-            </View>
-            
-            {renderDataCount()}
-            
-            {studentStatus.length === 0 ? (
-              <View style={styles.emptyState}>
-                <FontAwesome5 name="building" size={48} color={CHIETA_COLORS.gray} />
-                <Text style={styles.emptyStateText}>No placement records found</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  {apiStatus === 'offline' ? 'Backend connection required' : 'No data available for your account'}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.tableContainer}>
-                <DataTable>
-                  <DataTable.Header style={styles.tableHeaderRow}>
-                    <DataTable.Title style={styles.cellWrapper}>
-                      <Text style={styles.headerText}>Email</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper}>
-                      <Text style={styles.headerText}>Company</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper}>
-                      <Text style={styles.headerText}>Decision</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper} numeric>
-                      <Text style={styles.headerText}>Type</Text>
-                    </DataTable.Title>
-                  </DataTable.Header>
-                  
-                  {studentStatus.map((status, index) => (
-                    <DataTable.Row
-                      key={index}
-                      onPress={() => setSelectedStatus(status)}
-                      style={[styles.tableRow, index % 2 === 0 && styles.evenRow]}
-                    >
-                      <DataTable.Cell style={styles.cellWrapper}>
-                        <Text style={styles.cellText} numberOfLines={2}>
-                          {status.email || 'N/A'}
-                        </Text>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper}>
-                        <Text style={styles.cellText} numberOfLines={2}>
-                          {status.company_name || "N/A"}
-                        </Text>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper}>
-                        {renderStatusBadge(status.decision_outcome)}
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper} numeric>
-                        <Text style={styles.cellText}>
-                          {status.placement_type || "N/A"}
-                        </Text>
-                      </DataTable.Cell>
-                    </DataTable.Row>
-                  ))}
-                </DataTable>
-              </View>
-            )}
-          </View>
-        );
-
+        return renderStudentStatusView();
       case "documents":
-        return (
-          <View style={styles.modernCard}>
-            <View style={styles.cardHeader}>
-              <MaterialIcons name="description" size={24} color={CHIETA_COLORS.accent} />
-              <Text style={styles.cardTitle}>Document Library</Text>
-              {renderApiStatusIndicator()}
-            </View>
-            
-            {renderDataCount()}
-            
-            {documents.length === 0 ? (
-              <View style={styles.emptyState}>
-                <MaterialIcons name="description" size={48} color={CHIETA_COLORS.gray} />
-                <Text style={styles.emptyStateText}>No documents available</Text>
-                <Text style={styles.emptyStateSubtext}>
-                  {apiStatus === 'offline' ? 'Backend connection required' : 'No data available for your account'}
-                </Text>
-              </View>
-            ) : (
-              <View style={styles.tableContainer}>
-                <DataTable>
-                  <DataTable.Header style={styles.tableHeaderRow}>
-                    <DataTable.Title style={styles.cellWrapper}>
-                      <Text style={styles.headerText}>Document Name</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper}>
-                      <Text style={styles.headerText}>Type</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper} numeric>
-                      <Text style={styles.headerText}>Date</Text>
-                    </DataTable.Title>
-                    <DataTable.Title style={styles.cellWrapper} numeric>
-                      <Text style={styles.headerText}>Action</Text>
-                    </DataTable.Title>
-                  </DataTable.Header>
-                  
-                  {documents.map((doc, index) => (
-                    <DataTable.Row
-                      key={index}
-                      onPress={() => setSelectedDocument(doc)}
-                      style={[styles.tableRow, index % 2 === 0 && styles.evenRow]}
-                    >
-                      <DataTable.Cell style={styles.cellWrapper}>
-                        <Text style={styles.cellText} numberOfLines={3}>
-                          {doc.file_name || 'Unnamed Document'}
-                        </Text>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper}>
-                        <View style={styles.typeBadge}>
-                          <Text style={styles.typeText}>{doc.document_type || 'Unknown'}</Text>
-                        </View>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper} numeric>
-                        <Text style={styles.cellText}>
-                          {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB') : "N/A"}
-                        </Text>
-                      </DataTable.Cell>
-                      <DataTable.Cell style={styles.cellWrapper} numeric>
-                        <TouchableOpacity 
-                          onPress={(e) => {
-                            e.stopPropagation();
-                            handleDownload(doc.file_url);
-                          }}
-                          style={styles.modernDownloadButton}
-                        >
-                          <MaterialIcons name="download" size={20} color="white" />
-                        </TouchableOpacity>
-                      </DataTable.Cell>
-                    </DataTable.Row>
-                  ))}
-                </DataTable>
-              </View>
-            )}
-          </View>
-        );
-
+        return renderDocumentsView();
       default:
         return null;
     }
   };
 
-  const getViewTitle = () => {
-    switch (activeView) {
-      case "students": return "Admin Status";
-      case "student-status": return "Placement Status";
-      case "documents": return "Documents";
-      default: return "";
-    }
-  };
+  const renderStudentsView = () => (
+    <View style={styles.modernCard}>
+      <View style={styles.cardHeader}>
+        <Ionicons name="people" size={20} color={CHIETA_COLORS.accent} />
+        <Text style={styles.cardTitle}>Admin Decisions</Text>
+        {renderApiStatusIndicator()}
+      </View>
+      
+      {students.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Ionicons name="document-text-outline" size={48} color={CHIETA_COLORS.gray} />
+          <Text style={styles.emptyStateText}>No admin decisions found</Text>
+          <Text style={styles.emptyStateSubtext}>
+            {apiStatus === 'offline' ? 'Backend connection required' : 'No data available'}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.tableContainer}>
+          <DataTable>
+            <DataTable.Header style={styles.tableHeaderRow}>
+              <DataTable.Title style={styles.cellWrapper}>
+                <Text style={styles.headerText}>Email</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper}>
+                <Text style={styles.headerText}>Decision</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper} numeric>
+                <Text style={styles.headerText}>Date</Text>
+              </DataTable.Title>
+            </DataTable.Header>
+            
+            {students.map((student, index) => (
+              <DataTable.Row
+                key={index}
+                onPress={() => Alert.alert("Student Details", 
+                  `Email: ${student.email || 'N/A'}\nDecision: ${student.decision_outcome || 'N/A'}\nDate: ${student.decision_date ? new Date(student.decision_date).toLocaleDateString('en-GB') : 'N/A'}`)}
+                style={[styles.tableRow, index % 2 === 0 && styles.evenRow]}
+              >
+                <DataTable.Cell style={styles.cellWrapper}>
+                  <Text style={styles.cellText} numberOfLines={2}>
+                    {student.email || 'N/A'}
+                  </Text>
+                </DataTable.Cell>
+                <DataTable.Cell style={styles.cellWrapper}>
+                  {renderStatusBadge(student.decision_outcome)}
+                </DataTable.Cell>
+                <DataTable.Cell style={styles.cellWrapper} numeric>
+                  <Text style={styles.cellText}>
+                    {student.decision_date ? new Date(student.decision_date).toLocaleDateString('en-GB') : "N/A"}
+                  </Text>
+                </DataTable.Cell>
+              </DataTable.Row>
+            ))}
+          </DataTable>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderStudentStatusView = () => (
+    <View style={styles.modernCard}>
+      <View style={styles.cardHeader}>
+        <FontAwesome5 name="building" size={20} color={CHIETA_COLORS.accent} />
+        <Text style={styles.cardTitle}>Placement Status</Text>
+        {renderApiStatusIndicator()}
+      </View>
+      
+      {studentStatus.length === 0 ? (
+        <View style={styles.emptyState}>
+          <FontAwesome5 name="building" size={48} color={CHIETA_COLORS.gray} />
+          <Text style={styles.emptyStateText}>No placement records found</Text>
+          <Text style={styles.emptyStateSubtext}>
+            {apiStatus === 'offline' ? 'Backend connection required' : 'No data available'}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.tableContainer}>
+          <DataTable>
+            <DataTable.Header style={styles.tableHeaderRow}>
+              <DataTable.Title style={styles.cellWrapper}>
+                <Text style={styles.headerText}>Email</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper}>
+                <Text style={styles.headerText}>Company</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper}>
+                <Text style={styles.headerText}>Decision</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper} numeric>
+                <Text style={styles.headerText}>Type</Text>
+              </DataTable.Title>
+            </DataTable.Header>
+            
+            {studentStatus.map((status, index) => (
+              <DataTable.Row
+                key={index}
+                onPress={() => Alert.alert("Status Details",
+                  `Email: ${status.email || 'N/A'}\nCompany: ${status.company_name || 'N/A'}\nDecision: ${status.decision_outcome || 'N/A'}\nType: ${status.placement_type || 'N/A'}`)}
+                style={[styles.tableRow, index % 2 === 0 && styles.evenRow]}
+              >
+                <DataTable.Cell style={styles.cellWrapper}>
+                  <Text style={styles.cellText} numberOfLines={2}>
+                    {status.email || 'N/A'}
+                  </Text>
+                </DataTable.Cell>
+                <DataTable.Cell style={styles.cellWrapper}>
+                  <Text style={styles.cellText} numberOfLines={2}>
+                    {status.company_name || "N/A"}
+                  </Text>
+                </DataTable.Cell>
+                <DataTable.Cell style={styles.cellWrapper}>
+                  {renderStatusBadge(status.decision_outcome)}
+                </DataTable.Cell>
+                <DataTable.Cell style={styles.cellWrapper} numeric>
+                  <Text style={styles.cellText}>
+                    {status.placement_type || "N/A"}
+                  </Text>
+                </DataTable.Cell>
+              </DataTable.Row>
+            ))}
+          </DataTable>
+        </View>
+      )}
+    </View>
+  );
+
+  const renderDocumentsView = () => (
+    <View style={styles.modernCard}>
+      <View style={styles.cardHeader}>
+        <MaterialIcons name="description" size={24} color={CHIETA_COLORS.accent} />
+        <Text style={styles.cardTitle}>Document Library</Text>
+        {renderApiStatusIndicator()}
+      </View>
+      
+      <View style={styles.debugButtonsContainer}>
+        <TouchableOpacity 
+          style={styles.debugButton}
+          onPress={testServerConnection}
+        >
+          <Text style={styles.debugButtonText}>Test Server</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.debugButton}
+          onPress={testUploadsDirectory}
+        >
+          <Text style={styles.debugButtonText}>Check Uploads</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.debugButton}
+          onPress={() => {
+            Alert.alert(
+              "Debug Info",
+              `Backend: ${API_CONFIG().BASE_URL}\nEmail: ${email}\nDocuments: ${documents.length}\nAPI Status: ${apiStatus}`
+            );
+          }}
+        >
+          <Text style={styles.debugButtonText}>Debug Info</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {documents.length === 0 ? (
+        <View style={styles.emptyState}>
+          <MaterialIcons name="description" size={48} color={CHIETA_COLORS.gray} />
+          <Text style={styles.emptyStateText}>No documents available</Text>
+          <Text style={styles.emptyStateSubtext}>
+            {apiStatus === 'offline' ? 'Backend connection required' : 'No data available for your account'}
+          </Text>
+        </View>
+      ) : (
+        <View style={styles.tableContainer}>
+          <DataTable>
+            <DataTable.Header style={styles.tableHeaderRow}>
+              <DataTable.Title style={styles.cellWrapper}>
+                <Text style={styles.headerText}>Document Name</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper}>
+                <Text style={styles.headerText}>Type</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper} numeric>
+                <Text style={styles.headerText}>Date</Text>
+              </DataTable.Title>
+              <DataTable.Title style={styles.cellWrapper} numeric>
+                <Text style={styles.headerText}>Download</Text>
+              </DataTable.Title>
+            </DataTable.Header>
+            
+            {documents.map((doc, index) => {
+              const progress = downloadProgress[index];
+              
+              return (
+                <DataTable.Row
+                  key={index}
+                  onPress={() => Alert.alert("Document Details",
+                    `Name: ${doc.file_name || 'N/A'}\nType: ${doc.document_type || 'N/A'}\nDate: ${doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB') : 'N/A'}\nSize: ${doc.file_size || 'N/A'}`)}
+                  style={[styles.tableRow, index % 2 === 0 && styles.evenRow]}
+                >
+                  <DataTable.Cell style={styles.cellWrapper}>
+                    <Text style={styles.cellText} numberOfLines={3}>
+                      {doc.file_name || 'Unnamed Document'}
+                    </Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.cellWrapper}>
+                    <View style={styles.typeBadge}>
+                      <Text style={styles.typeText}>{doc.document_type || 'Unknown'}</Text>
+                    </View>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.cellWrapper} numeric>
+                    <Text style={styles.cellText}>
+                      {doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB') : "N/A"}
+                    </Text>
+                  </DataTable.Cell>
+                  <DataTable.Cell style={styles.cellWrapper} numeric>
+                    {progress !== undefined && progress !== null ? (
+                      <View style={styles.progressContainer}>
+                        <View style={styles.progressBar}>
+                          <View 
+                            style={[
+                              styles.progressFill, 
+                              { width: `${progress}%` }
+                            ]} 
+                          />
+                        </View>
+                        <Text style={styles.progressText}>{progress}%</Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity 
+                        onPress={(e) => {
+                          e.stopPropagation();
+                          handleDownload(doc, index);
+                        }}
+                        style={[styles.modernDownloadButton, downloading && styles.disabledButton]}
+                        disabled={downloading}
+                      >
+                        {downloading ? (
+                          <ActivityIndicator size="small" color="white" />
+                        ) : (
+                          <MaterialIcons name="download" size={20} color="white" />
+                        )}
+                      </TouchableOpacity>
+                    )}
+                  </DataTable.Cell>
+                </DataTable.Row>
+              );
+            })}
+          </DataTable>
+        </View>
+      )}
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
@@ -517,7 +683,11 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
         
         <View style={styles.headerBottom}>
           <Text style={styles.headerTitle}>SSDD Portal</Text>
-          <Text style={styles.headerSubtitle}>{getViewTitle()}</Text>
+          <Text style={styles.headerSubtitle}>
+            {activeView === "students" ? "Admin Status" : 
+             activeView === "student-status" ? "Placement Status" : 
+             "Documents"}
+          </Text>
         </View>
         
         <View style={styles.tabContainer}>
@@ -571,9 +741,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={CHIETA_COLORS.accent} />
             <Text style={styles.loadingText}>Loading data...</Text>
-            {apiStatus === 'offline' && (
-              <Text style={styles.offlineText}>Backend connection issue detected</Text>
-            )}
           </View>
         ) : (
           <ScrollView 
@@ -592,9 +759,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
           © {new Date().getFullYear()} CHIETA. All rights reserved.
         </Text>
       </View>
-
-      {/* Modals - Keep your existing modal code */}
-      {/* ... (your existing modal code remains the same) ... */}
     </SafeAreaView>
   );
 };
@@ -703,11 +867,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: CHIETA_COLORS.gray,
   },
-  offlineText: {
-    marginTop: 8,
-    fontSize: 14,
-    color: CHIETA_COLORS.danger,
-  },
   
   // Card Styles
   modernCard: {
@@ -735,15 +894,26 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
 
-  // Data Count Styles
-  dataCountContainer: {
-    paddingHorizontal: 20,
-    paddingBottom: 10,
+  // Debug Buttons
+  debugButtonsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginHorizontal: 20,
+    marginBottom: 10,
+    paddingTop: 10,
   },
-  dataCountText: {
+  debugButton: {
+    backgroundColor: CHIETA_COLORS.info,
+    padding: 8,
+    borderRadius: 6,
+    flex: 1,
+    marginHorizontal: 5,
+    alignItems: 'center',
+  },
+  debugButtonText: {
+    color: 'white',
     fontSize: 12,
-    color: CHIETA_COLORS.gray,
-    fontStyle: 'italic',
+    fontWeight: '500',
   },
 
   // API Status Styles
@@ -787,15 +957,6 @@ const styles = StyleSheet.create({
     color: CHIETA_COLORS.gray,
     textAlign: 'center',
     marginBottom: 20,
-  },
-  tipsContainer: {
-    alignSelf: 'stretch',
-    marginBottom: 24,
-  },
-  tip: {
-    fontSize: 14,
-    color: CHIETA_COLORS.gray,
-    marginBottom: 8,
   },
   retryButton: {
     backgroundColor: CHIETA_COLORS.accent,
@@ -873,6 +1034,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 2,
   },
+  disabledButton: {
+    backgroundColor: CHIETA_COLORS.gray,
+    opacity: 0.7,
+  },
+
+  // Progress Styles
+  progressContainer: {
+    alignItems: 'center',
+    width: 60,
+  },
+  progressBar: {
+    width: '100%',
+    height: 4,
+    backgroundColor: '#E5E7EB',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: CHIETA_COLORS.success,
+  },
+  progressText: {
+    fontSize: 10,
+    color: CHIETA_COLORS.gray,
+    marginTop: 4,
+  },
 
   // Empty State
   emptyState: {
@@ -893,87 +1080,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     textAlign: 'center',
   },
-
-// Modal Styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    width: "90%",
-    maxHeight: Dimensions.get("window").height * 0.8,
-    elevation: 5,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    flex: 1,
-  },
-  modalCloseButton: {
-    padding: 4,
-  },
-  modalBody: {
-    padding: 20,
-  },
-  modalSection: {
-    marginBottom: 24,
-  },
-  detailRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 12,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  detailLabel: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: CHIETA_COLORS.gray,
-    flex: 1,
-  },
-  detailValue: {
-    fontSize: 14,
-    color: CHIETA_COLORS.darkText,
-    flex: 1,
-    textAlign: "right",
-  },
-  modalStatusBadge: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-  },
-  modalDownloadButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginTop: 16,
-  },
-  modalDownloadText: {
-    color: 'white',
-    fontSize: 14,
-    fontWeight: '600',
-    marginLeft: 8,
-    },
+  
   // Footer
   footer: {
     padding: 16,

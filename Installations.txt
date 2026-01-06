@@ -15,3 +15,7 @@ SSDD_Postgres
 $env:REACT_NATIVE_PACKAGER_HOSTNAME="eb4adf91e02a.ngrok-free.app"
 
 $env:REACT_NATIVE_PACKAGER_HOSTNAME="https://mobile-app-api-p2o5.onrender.com"
+
+Build Release APK
+-cd android
+./gradlew assembleRelease
