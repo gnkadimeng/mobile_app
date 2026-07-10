@@ -1,0 +1,12 @@
+node_modules
+dist
+.expo
+ios/Pods
+ios/build
+android/build
+android/.gradle
+.git
+.env
+*.log
+playwright-report
+test-results

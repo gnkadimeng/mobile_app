@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
       - run: npm ci
       # 20 pre-existing lint errors (17 no-undef, 2 no-duplicate-case) — real,
@@ -52,7 +52,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version-file: frontend/.nvmrc
 
       - name: Start backend against seeded test DB
         working-directory: backend

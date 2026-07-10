@@ -29,9 +29,15 @@ echo "EXPO_PUBLIC_API_URL=https://ssdd.chieta.org.za/mobile-api" > .env
 
 Every endpoint, request/response shape, and the auth flow are documented in the backend's **Swagger UI**: `https://ssdd.chieta.org.za/mobile-api/api-docs/`.
 
+> **Node version is pinned to 20** (see [`.nvmrc`](.nvmrc)). `engine-strict` is on,
+> so npm refuses to install on any other major — this is what stops a mismatched
+> Node from committing a `package-lock.json` that CI then rejects. Run `nvm use`
+> first, or use the Docker path below.
+
 ## Run locally
 
 ```bash
+nvm use          # Node 20, per .nvmrc
 npm install
 
 # web (quickest to click through)
@@ -44,14 +50,48 @@ npx expo run:ios
 
 Log in with a backend account; the app then shows the portal selection (IMS / GMS).
 
-## Build & distribute
+## Reproducible builds (Docker)
+
+The **web** build and the full-stack **E2E** stack run in containers so they
+behave identically on every machine and in CI — no local Node/Postgres setup.
 
 ```bash
-# Android release APK
+# just the web bundle (deterministic; same Node as CI)
+docker build --build-arg EXPO_PUBLIC_API_URL=https://ssdd.chieta.org.za/mobile-api -t chieta-web .
+
+# full stack for E2E: Postgres + backend + web, mirroring CI
+git clone https://github.com/cktshukudu/backend_api ../backend_api   # sibling checkout
+docker compose up --build
+BASE_URL=http://localhost:19010 E2E_EMAIL=test@chieta.test E2E_PW='Test1234!' npx playwright test
+docker compose down -v
+```
+
+> **iOS/Android native builds cannot run in Docker** (Xcode/CocoaPods are macOS-only).
+> Use EAS Build below — that is the reproducible-environment answer for native.
+
+## Native builds (EAS)
+
+Native `.ipa`/`.apk` are built on Expo's managed builders per [`eas.json`](eas.json),
+so nobody hand-runs `pod install` / Gradle on their own machine.
+
+```bash
+npm i -g eas-cli
+eas login
+eas build -p ios --profile preview      # internal build (simulator)
+eas build -p android --profile preview   # internal APK
+eas build --profile production           # store builds
+```
+
+The API each profile targets is set via `EXPO_PUBLIC_API_URL` in `eas.json`.
+
+### Local Android APK (alternative)
+
+```bash
+# needs Android SDK locally
 cd android && ./gradlew assembleRelease
 ```
 
-Set `EXPO_PUBLIC_API_URL` (via `.env`) to the target backend before building, then distribute the signed APK to staff (MDM / sideload).
+Set `EXPO_PUBLIC_API_URL` (via `.env`) before building, then distribute the signed APK to staff (MDM / sideload).
 
 ## Tests
 

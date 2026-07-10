@@ -1,0 +1,68 @@
+# Full-stack E2E environment — the same three pieces CI wires up, runnable
+# locally with one command. Mirrors .github/workflows/ci.yml.
+#
+#   docker compose up --build          # bring up db + backend + web
+#   BASE_URL=http://localhost:19010 \
+#     E2E_EMAIL=test@chieta.test E2E_PW='Test1234!' npx playwright test
+#   docker compose down -v             # tear down
+#
+# The backend is built from a SIBLING checkout of the API repo. Clone it next
+# to this repo first:
+#   git clone https://github.com/cktshukudu/backend_api ../backend_api
+#
+# Ports are published on localhost so a host browser (and Playwright) reach the
+# API at http://localhost:5055 and the web app at http://localhost:19010 —
+# exactly the URLs CI uses.
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: chieta_test
+    ports:
+      - "5432:5432"
+    # Seed the schema + synthetic data on first init (runs *.sql alphabetically).
+    volumes:
+      - ../backend_api/db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ../backend_api/db/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d chieta_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: ../backend_api
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: chieta_test
+      DB_USER_NAME: postgres
+      DB_PASSWORD: postgres
+      DB_SSLMODE: ""
+      PORT: 5055
+      SECRET_KEY: ci-test-secret
+    ports:
+      - "5055:5055"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:5055/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      args:
+        # Browser runs on the host, so it must reach the API on localhost.
+        EXPO_PUBLIC_API_URL: http://localhost:5055
+    ports:
+      - "19010:19010"
+    depends_on:
+      backend:
+        condition: service_healthy

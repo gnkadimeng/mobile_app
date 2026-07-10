@@ -1,0 +1,33 @@
+{
+  "cli": {
+    "version": ">= 12.0.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_API_URL": "http://localhost:5055"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": { "simulator": true },
+      "android": { "buildType": "apk" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ssdd.chieta.org.za/mobile-api"
+      }
+    },
+    "production": {
+      "autoIncrement": true,
+      "android": { "buildType": "app-bundle" },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://ssdd.chieta.org.za/mobile-api"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}
