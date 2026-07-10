@@ -16,6 +16,7 @@ import { IconButton } from "react-native-paper";
 import axios from "axios";
 import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import API_CONFIG, { ENDPOINTS } from "../config"; // Import the config
+import { setAuthToken } from "../authToken";
 
 const LoginScreen = ({ onNavigateBack, onLoginSuccess, onNavigateToRegister }) => {
   const [email, setEmail] = useState("");
@@ -96,7 +97,10 @@ const LoginScreen = ({ onNavigateBack, onLoginSuccess, onNavigateToRegister }) =
         const accountType = userData.accounttype;
         
         console.log("Login successful for:", userEmail, "Role:", accountType);
-        
+
+        // Store the JWT and set it as the default auth header for all API calls.
+        await setAuthToken(loginResponse.data.token);
+
         // Pass the complete user data to the success handler
         onLoginSuccess(userEmail, userData);
       } else {

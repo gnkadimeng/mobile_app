@@ -8,7 +8,7 @@ const API_CONFIG = {
   
   // Development - Local backend
   DEVELOPMENT: {
-    BASE_URL: "http://localhost:5055", 
+    BASE_URL: "http://localhost:5000", 
     NAME: "Development"
   },
   

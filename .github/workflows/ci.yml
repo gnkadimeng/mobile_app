@@ -65,6 +65,7 @@ jobs:
           DB_PASSWORD: postgres
           DB_SSLMODE: ""
           PORT: 5055
+          SECRET_KEY: ci-test-secret
         run: |
           npm ci
           psql -h localhost -U postgres -d chieta_test -v ON_ERROR_STOP=1 -f db/schema.sql
@@ -74,10 +75,10 @@ jobs:
 
       - name: Build & serve web app (pointed at local backend)
         working-directory: frontend
-        env:
-          EXPO_PUBLIC_API_URL: http://localhost:5055
         run: |
           npm ci
+          # EXPO_PUBLIC_* must come from a .env file to be inlined at export time.
+          echo "EXPO_PUBLIC_API_URL=http://localhost:5055" > .env
           npx expo export --platform web --output-dir dist
           npx serve -s dist -l 19010 &
           for i in $(seq 1 30); do curl -sf http://localhost:19010 >/dev/null && break; sleep 2; done
@@ -86,6 +87,8 @@ jobs:
         working-directory: frontend
         env:
           BASE_URL: http://localhost:19010
+          E2E_EMAIL: test@chieta.test
+          E2E_PW: Test1234!
         run: |
           npm i -D @playwright/test
           npx playwright install --with-deps chromium
