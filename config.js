@@ -1,20 +1,22 @@
 // API Configuration for CHIETA Mobile App
 const API_CONFIG = {
-  // Production - Your deployed backend on Render
+  // Production - CHIETA on-prem backend (nginx TLS route -> mobile-api).
+  // NOTE: this host is on the CHIETA internal network, so the device/emulator
+  // must be on the CHIETA VPN to reach it. The old Render URL is decommissioned.
   PRODUCTION: {
-    BASE_URL: "https://mobile-app-api-p2o5.onrender.com",
+    BASE_URL: "https://ssdd.chieta.org.za/mobile-api",
     NAME: "Production"
   },
-  
+
   // Development - Local backend
   DEVELOPMENT: {
-    BASE_URL: "http://localhost:5000", 
+    BASE_URL: "http://localhost:5000",
     NAME: "Development"
   },
-  
+
   // Staging/Testing environment
   STAGING: {
-    BASE_URL: "https://mobile-app-api-p2o5.onrender.com",
+    BASE_URL: "https://ssdd.chieta.org.za/mobile-api",
     NAME: "Staging"
   },
   
@@ -95,10 +97,20 @@ const getEnvironment = () => {
 // An explicit EXPO_PUBLIC_API_URL always wins — this is how deploys, staging,
 // and CI/E2E point the app at a chosen backend without code changes (and is the
 // single place all API calls should resolve their host from).
+const withScheme = (url) => {
+  // A schemeless host (e.g. "ssdd.chieta.org.za/mobile-api") makes the browser
+  // throw "URL scheme must be http or https". Default to https so a common
+  // misconfiguration in EXPO_PUBLIC_API_URL still works.
+  if (/^https?:\/\//i.test(url)) return url;
+  console.warn(`⚠️ API URL "${url}" has no scheme; assuming https://`);
+  return `https://${url.replace(/^\/+/, "")}`;
+};
+
 const getBaseURL = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
-    console.log(`🔗 API Base URL (env override): ${process.env.EXPO_PUBLIC_API_URL}`);
-    return process.env.EXPO_PUBLIC_API_URL;
+    const url = withScheme(process.env.EXPO_PUBLIC_API_URL.trim());
+    console.log(`🔗 API Base URL (env override): ${url}`);
+    return url;
   }
   const environment = getEnvironment();
   const config = API_CONFIG[environment] || API_CONFIG.PRODUCTION;
