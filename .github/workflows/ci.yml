@@ -1,0 +1,99 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  lint-build:
+    name: Lint & Web build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      # 20 pre-existing lint errors (17 no-undef, 2 no-duplicate-case) — real,
+      # but out of scope for this change. Reported, non-blocking, until cleaned.
+      - name: Lint (report-only)
+        run: npx expo lint || true
+      - name: Web build
+        run: npx expo export --platform web --output-dir dist
+
+  e2e:
+    name: Full-stack E2E (backend + web + Playwright)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: chieta_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd pg_isready --health-interval 10s
+          --health-timeout 5s --health-retries 5
+
+    steps:
+      - name: Checkout frontend
+        uses: actions/checkout@v4
+        with:
+          path: frontend
+      - name: Checkout backend
+        uses: actions/checkout@v4
+        with:
+          repository: cktshukudu/backend_api
+          path: backend
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Start backend against seeded test DB
+        working-directory: backend
+        env:
+          PGPASSWORD: postgres
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: chieta_test
+          DB_USER_NAME: postgres
+          DB_PASSWORD: postgres
+          DB_SSLMODE: ""
+          PORT: 5055
+        run: |
+          npm ci
+          psql -h localhost -U postgres -d chieta_test -v ON_ERROR_STOP=1 -f db/schema.sql
+          psql -h localhost -U postgres -d chieta_test -v ON_ERROR_STOP=1 -f db/seed.sql
+          node server.js &
+          for i in $(seq 1 30); do curl -sf http://localhost:5055/health && break; sleep 2; done
+
+      - name: Build & serve web app (pointed at local backend)
+        working-directory: frontend
+        env:
+          EXPO_PUBLIC_API_URL: http://localhost:5055
+        run: |
+          npm ci
+          npx expo export --platform web --output-dir dist
+          npx serve -s dist -l 19010 &
+          for i in $(seq 1 30); do curl -sf http://localhost:19010 >/dev/null && break; sleep 2; done
+
+      - name: Run Playwright E2E
+        working-directory: frontend
+        env:
+          BASE_URL: http://localhost:19010
+        run: |
+          npm i -D @playwright/test
+          npx playwright install --with-deps chromium
+          npx playwright test
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: frontend/playwright-report
+          retention-days: 7
