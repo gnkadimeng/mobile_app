@@ -14,11 +14,12 @@ import {
   Alert,
   Platform,
 } from "react-native";
-import { Card, DataTable } from "react-native-paper";
+import { DataTable } from "react-native-paper";
 import { MaterialIcons, FontAwesome5, Ionicons, Feather } from "@expo/vector-icons";
 import axios from "axios";
 import { LinearGradient } from "expo-linear-gradient";
-import API_CONFIG, { ENDPOINTS } from "../config";
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const { width: screenWidth, height: screenHeight } = Dimensions.get("window");
 
@@ -36,6 +37,8 @@ const CHIETA_COLORS = {
   info: '#2196F3',
   gray: '#6B7280',
 };
+
+
 
 const SSDDScreen = ({ onNavigateBack, email }) => {
   const [students, setStudents] = useState([]);
@@ -79,12 +82,11 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const checkApiHealth = async () => {
     try {
-      const config = API_CONFIG();
-      const response = await axios.get(`${config.BASE_URL}${ENDPOINTS.HEALTH}`, {
+      const response = await axios.get(`${BASE_URL}/health`, {
         timeout: 10000
       });
       setApiStatus('online');
-      console.log('✅ Backend is online:', config.BASE_URL);
+      console.log('✅ Backend is online:', BASE_URL);
       return true;
     } catch (error) {
       setApiStatus('offline');
@@ -95,9 +97,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const fetchStudents = async (email) => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildStudentsURL ? config.buildStudentsURL(email) : `${config.BASE_URL}${ENDPOINTS.STUDENTS}/${email}`;
-      
+      const url = `${BASE_URL}/students/${email}`;
       console.log('📡 Fetching students from:', url);
       const response = await axios.get(url, { timeout: 15000 });
       
@@ -112,9 +112,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const fetchStudentStatus = async (email) => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildStudentStatusURL ? config.buildStudentStatusURL(email) : `${config.BASE_URL}${ENDPOINTS.STUDENT_STATUS}/${email}`;
-      
+      const url = `${BASE_URL}/student-status/${email}`;
       console.log('📡 Fetching student status from:', url);
       const response = await axios.get(url, { timeout: 15000 });
       
@@ -129,9 +127,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
 
   const fetchDocuments = async (email) => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildDocumentsURL ? config.buildDocumentsURL(email) : `${config.BASE_URL}${ENDPOINTS.DOCUMENTS}/${email}`;
-      
+      const url = `${BASE_URL}/documents/${email}`;
       console.log('📡 Fetching documents from:', url);
       const response = await axios.get(url, { timeout: 15000 });
       
@@ -142,9 +138,10 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
         console.log('🔍 Document details:');
         response.data.forEach((doc, idx) => {
           console.log(`  Document ${idx + 1}:`);
+          console.log(`    ID: ${doc.id}`);
           console.log(`    Name: ${doc.file_name}`);
-          console.log(`    URL: ${doc.file_url || doc.download_url}`);
           console.log(`    Type: ${doc.document_type}`);
+          console.log(`    Format: ${doc.file_format}`);
         });
       }
       
@@ -156,7 +153,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
     }
   };
 
-  // FIXED: Simplified download function
+  // UPDATED: Download function using /download/:id endpoint
   const handleDownload = async (document, index) => {
     console.log('📥 Attempting to download:', document.file_name);
     
@@ -165,116 +162,139 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
     setDownloading(true);
     setDownloadProgress(prev => ({ ...prev, [index]: 0 }));
     
-    if (!document || !document.file_name) {
-      Alert.alert("Error", "Document filename not available.");
+    if (!document || !document.id) {
+      Alert.alert("Error", "Document ID not available.");
       setDownloading(false);
       setDownloadProgress(prev => ({ ...prev, [index]: null }));
       return;
     }
 
     try {
-      // Get the download URL - prefer direct URLs from backend
-      let downloadUrl = document.direct_download_url || document.download_url || document.file_url;
-      
-      if (!downloadUrl) {
-        // Construct the download URL if not provided by backend
-        const config = API_CONFIG();
-        const encodedFilename = encodeURIComponent(document.file_name);
-        downloadUrl = `${config.BASE_URL}/download/document/${encodedFilename}`;
-      }
+      const documentId = document.id;
+      const fileName = document.file_name || `document_${documentId}.${document.file_format || 'pdf'}`;
       
       console.log('📊 Download info:');
-      console.log('  File name:', document.file_name);
-      console.log('  Download URL:', downloadUrl);
+      console.log('  Document ID:', documentId);
+      console.log('  File name:', fileName);
+      console.log('  File format:', document.file_format);
       
-      // Test if URL can be opened
-      const canOpen = await Linking.canOpenURL(downloadUrl);
-      console.log('  Can open URL?', canOpen);
+      // Create file path for saving
+      const fileUri = `${FileSystem.documentDirectory}${fileName}`;
       
-      if (canOpen) {
-        console.log('✅ Opening download URL...');
-        
-        // Update progress to show download started
-        setDownloadProgress(prev => ({ ...prev, [index]: 50 }));
-        
-        // Open the URL - this should trigger the download
-        const supported = await Linking.openURL(downloadUrl);
-        
-        if (supported) {
-          setDownloadProgress(prev => ({ ...prev, [index]: 100 }));
-          setTimeout(() => {
-            Alert.alert("Download Started", `Downloading: ${document.file_name}`);
-            setDownloadProgress(prev => ({ ...prev, [index]: null }));
-          }, 500);
-        } else {
-          Alert.alert("Error", "Cannot open URL on this device");
-          setDownloadProgress(prev => ({ ...prev, [index]: null }));
-        }
-      } else {
-        Alert.alert(
-          "Cannot Open URL", 
-          "The download URL cannot be opened directly. Trying alternative method...",
-          [{ text: "OK" }]
-        );
-        
-        // Try alternative: Show the URL for manual download
-        Alert.alert(
-          "Download Link",
-          `File: ${document.file_name}\n\nCopy this URL to download: ${downloadUrl}`,
-          [
-            { text: "Copy URL", onPress: () => copyToClipboard(downloadUrl) },
-            { text: "Open in Browser", onPress: () => Linking.openURL(downloadUrl) },
-            { text: "Cancel" }
-          ]
-        );
+      // Show progress
+      setDownloadProgress(prev => ({ ...prev, [index]: 30 }));
+      
+      // Download using FileSystem
+      const downloadResult = await FileSystem.downloadAsync(
+        `${BASE_URL}/download/${documentId}`,
+        fileUri
+      );
+      
+      console.log('✅ Download complete:', downloadResult);
+      
+      setDownloadProgress(prev => ({ ...prev, [index]: 100 }));
+      
+      // Ask user what to do with the file
+      Alert.alert(
+        "Download Complete",
+        `${fileName} has been downloaded successfully!`,
+        [
+          {
+            text: "Open File",
+            onPress: () => openFile(fileUri, fileName)
+          },
+          {
+            text: "Share File",
+            onPress: () => shareFile(fileUri, fileName)
+          },
+          {
+            text: "OK",
+            style: "cancel"
+          }
+        ]
+      );
+      
+      // Reset progress after delay
+      setTimeout(() => {
         setDownloadProgress(prev => ({ ...prev, [index]: null }));
-      }
+      }, 1000);
+      
     } catch (error) {
       console.error('❌ Download error:', error);
       
       Alert.alert(
-        "Download Error", 
+        "Download Failed", 
         `Failed to download: ${document.file_name}\n\nError: ${error.message}`,
-        [
-          { 
-            text: "Try Direct Download", 
-            onPress: () => {
-              // Show direct download instructions
-              const config = API_CONFIG();
-              const encodedFilename = encodeURIComponent(document.file_name);
-              const directUrl = `${config.BASE_URL}/download/document/${encodedFilename}`;
-              
-              Alert.alert(
-                "Direct Download",
-                `Open this link in your browser:\n\n${directUrl}`,
-                [
-                  { text: "Copy Link", onPress: () => copyToClipboard(directUrl) },
-                  { text: "OK" }
-                ]
-              );
-            }
-          },
-          { text: "Cancel" }
-        ]
+        [{ text: "OK" }]
       );
+      
       setDownloadProgress(prev => ({ ...prev, [index]: null }));
     } finally {
       setDownloading(false);
     }
   };
 
-  // Helper function to copy to clipboard
-  const copyToClipboard = async (text) => {
-    // You'll need to install and use @react-native-clipboard/clipboard
-    // For now, we'll just show an alert
-    Alert.alert("Copied!", "URL copied to clipboard");
-    console.log("Would copy to clipboard:", text);
+  // Open downloaded file
+  const openFile = async (fileUri, fileName) => {
+    try {
+      console.log("📂 Opening file:", fileUri);
+      
+      if (Platform.OS === 'ios') {
+        // For iOS, use Sharing API
+        await Sharing.shareAsync(fileUri);
+      } else {
+        // For Android, use Intent Launcher
+        const contentUri = await FileSystem.getContentUriAsync(fileUri);
+        await Linking.openURL(contentUri);
+      }
+    } catch (error) {
+      console.error("❌ Error opening file:", error);
+      Alert.alert(
+        "Cannot Open File",
+        "Try opening with another app",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
+  // Share downloaded file
+  const shareFile = async (fileUri, fileName) => {
+    try {
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert("Sharing not available", "Sharing is not available on this device.");
+        return;
+      }
+      
+      await Sharing.shareAsync(fileUri, {
+        mimeType: getMimeType(fileName),
+        dialogTitle: `Share ${fileName}`,
+      });
+    } catch (error) {
+      console.error("❌ Error sharing file:", error);
+      Alert.alert("Sharing Failed", "Could not share the file.");
+    }
+  };
+
+  // Get MIME type from filename
+  const getMimeType = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const mimeTypes = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'txt': 'text/plain'
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
   };
 
   const testServerConnection = async () => {
     try {
-      const config = API_CONFIG();
-      const testUrl = `${config.BASE_URL}/health`;
+      const testUrl = `${BASE_URL}/health`;
       console.log('🧪 Testing server connection:', testUrl);
       
       const response = await axios.get(testUrl, { timeout: 5000 });
@@ -283,26 +303,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
     } catch (error) {
       console.error('❌ Server test failed:', error);
       Alert.alert("Server Test Failed", `Cannot reach server: ${error.message}`);
-    }
-  };
-
-  const testUploadsDirectory = async () => {
-    try {
-      const config = API_CONFIG();
-      const url = `${config.BASE_URL}/uploads-check`;
-      console.log('🔍 Testing uploads directory:', url);
-      
-      const response = await axios.get(url, { timeout: 5000 });
-      console.log('📁 Uploads directory check:', response.data);
-      
-      Alert.alert(
-        "Uploads Directory Info",
-        `Directory: ${response.data.uploadsDirectory}\nExists: ${response.data.exists}\nFiles: ${response.data.fileCount}`,
-        [{ text: "OK" }]
-      );
-    } catch (error) {
-      console.error('❌ Uploads directory test failed:', error);
-      Alert.alert("Error", `Failed to check uploads: ${error.message}`);
     }
   };
 
@@ -326,8 +326,6 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
   );
 
   const renderApiStatusIndicator = () => {
-    const config = API_CONFIG();
-    
     if (apiStatus === 'checking') {
       return (
         <View style={styles.apiStatusContainer}>
@@ -549,17 +547,10 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
         
         <TouchableOpacity 
           style={styles.debugButton}
-          onPress={testUploadsDirectory}
-        >
-          <Text style={styles.debugButtonText}>Check Uploads</Text>
-        </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.debugButton}
           onPress={() => {
             Alert.alert(
               "Debug Info",
-              `Backend: ${API_CONFIG().BASE_URL}\nEmail: ${email}\nDocuments: ${documents.length}\nAPI Status: ${apiStatus}`
+              `Backend: ${BASE_URL}\nEmail: ${email}\nDocuments: ${documents.length}\nAPI Status: ${apiStatus}`
             );
           }}
         >
@@ -600,7 +591,7 @@ const SSDDScreen = ({ onNavigateBack, email }) => {
                 <DataTable.Row
                   key={index}
                   onPress={() => Alert.alert("Document Details",
-                    `Name: ${doc.file_name || 'N/A'}\nType: ${doc.document_type || 'N/A'}\nDate: ${doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB') : 'N/A'}\nSize: ${doc.file_size || 'N/A'}`)}
+                    `Name: ${doc.file_name || 'N/A'}\nType: ${doc.document_type || 'N/A'}\nDate: ${doc.uploaded_at ? new Date(doc.uploaded_at).toLocaleDateString('en-GB') : 'N/A'}\nFormat: ${doc.file_format || 'N/A'}`)}
                   style={[styles.tableRow, index % 2 === 0 && styles.evenRow]}
                 >
                   <DataTable.Cell style={styles.cellWrapper}>

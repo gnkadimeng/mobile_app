@@ -14,11 +14,29 @@ import {
   StatusBar
 } from 'react-native';
 import { Ionicons, MaterialIcons, FontAwesome5 } from '@expo/vector-icons';
-import API_CONFIG, { ENDPOINTS } from "../config";
+import axios from 'axios';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 
 const { width, height } = Dimensions.get('window');
 const isSmallScreen = width < 375;
 const isLargeScreen = width > 768;
+
+
+// CHIETA Colors
+const CHIETA_COLORS = {
+  primary: '#2C0A40',
+  secondary: '#FF8F00',
+  accent: '#6A0DAD',
+  lightBg: '#F8F9FA',
+  darkText: '#2C3E50',
+  lightText: '#FFFFFF',
+  success: '#4CAF50',
+  warning: '#F59E0B',
+  danger: '#F44336',
+  info: '#2196F3',
+  gray: '#6B7280',
+};
 
 const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   const [showLinkedOnly, setShowLinkedOnly] = useState(false);
@@ -36,21 +54,7 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   const [mgApplications, setMgApplications] = useState([]);
   const [dgApplications, setDgApplications] = useState([]);
   const [downloadingDoc, setDownloadingDoc] = useState(false);
-
-  // CHIETA Colors
-  const CHIETA_COLORS = {
-    primary: '#2C0A40',
-    secondary: '#FF8F00',
-    accent: '#6A0DAD',
-    lightBg: '#F8F9FA',
-    darkText: '#2C3E50',
-    lightText: '#FFFFFF',
-    success: '#4CAF50',
-    warning: '#F59E0B',
-    danger: '#F44336',
-    info: '#2196F3',
-    gray: '#6B7280',
-  };
+  const [documentMapping, setDocumentMapping] = useState({}); // Store document IDs for MG/DG
 
   useEffect(() => {
     if (userEmail) {
@@ -82,14 +86,11 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   // Check if backend API is available
   const checkApiHealth = async () => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildHealthURL ? config.buildHealthURL() : `${config.BASE_URL}${ENDPOINTS.HEALTH}`;
-      
-      console.log('📡 Checking API health:', url);
-      const response = await fetch(url, { timeout: 10000 });
-      const data = await response.json();
+      const response = await axios.get(`${BASE_URL}/health`, {
+        timeout: 10000
+      });
       setApiStatus('online');
-      console.log('✅ Backend is online:', config.BASE_URL);
+      console.log('✅ Backend is online:', BASE_URL);
       return true;
     } catch (error) {
       setApiStatus('offline');
@@ -101,24 +102,18 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   // Fetch MG Status
   const fetchMGStatus = async () => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildMGStatusURL ? config.buildMGStatusURL() : `${config.BASE_URL}${ENDPOINTS.MG_STATUS}`;
-      
+      const url = `${BASE_URL}/mg-status`;
       console.log('📡 Fetching MG status from:', url);
-      const response = await fetch(url, { timeout: 15000 });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await axios.get(url, { timeout: 15000 });
       
-      const mgData = await response.json();
-      console.log('✅ MG status received:', mgData);
+      console.log('✅ MG status received:', response.data);
       
-      setMgWindows(Array.isArray(mgData) ? mgData : []);
+      setMgWindows(Array.isArray(response.data) ? response.data : []);
       
       // Find active MG window
       const now = new Date();
-      const activeMg = mgData.find(window => {
+      const activeMg = response.data.find(window => {
         const start = new Date(window.startdate);
         const end = new Date(window.endDate);
         return now >= start && now <= end;
@@ -134,24 +129,18 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   // Fetch DG Status
   const fetchDGStatus = async () => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildDGStatusURL ? config.buildDGStatusURL() : `${config.BASE_URL}${ENDPOINTS.DG_STATUS}`;
-      
+      const url = `${BASE_URL}/dg-status`;
       console.log('📡 Fetching DG status from:', url);
-      const response = await fetch(url, { timeout: 15000 });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await axios.get(url, { timeout: 15000 });
       
-      const dgData = await response.json();
-      console.log('✅ DG status received:', dgData);
+      console.log('✅ DG status received:', response.data);
       
-      setDgWindows(Array.isArray(dgData) ? dgData : []);
+      setDgWindows(Array.isArray(response.data) ? response.data : []);
       
       // Find active DG window
       const now = new Date();
-      const activeDg = dgData.find(window => {
+      const activeDg = response.data.find(window => {
         const launch = new Date(window.launchDte);
         const deadline = new Date(window.deadlineTime);
         return now >= launch && now <= deadline;
@@ -167,22 +156,14 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   // Fetch Organisation Applications
   const fetchOrganisationApplications = async () => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildOrganisationApplicationsURL ? 
-        config.buildOrganisationApplicationsURL(userEmail) : 
-        `${config.BASE_URL}${ENDPOINTS.ORGANISATION_APPLICATIONS}/${userEmail}`;
-      
+      const url = `${BASE_URL}/organisation-applications/${userEmail}`;
       console.log('📡 Fetching organisation applications from:', url);
-      const response = await fetch(url, { timeout: 15000 });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await axios.get(url, { timeout: 15000 });
       
-      const orgData = await response.json();
-      console.log('✅ Organisation applications received:', orgData);
+      console.log('✅ Organisation applications received:', response.data);
       
-      setLinkedOrgs(Array.isArray(orgData) ? orgData : []);
+      setLinkedOrgs(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("❌ Error fetching organisation applications:", error);
       setLinkedOrgs([]);
@@ -193,22 +174,27 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   // Fetch MG application details
   const fetchMGApplications = async (sdlNo) => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildMGApplicationsDetailsURL ? 
-        config.buildMGApplicationsDetailsURL(sdlNo) : 
-        `${config.BASE_URL}${ENDPOINTS.MG_APPLICATIONS_DETAILS}/${sdlNo}`;
-      
+      const url = `${BASE_URL}/mg-applications-details/${sdlNo}`;
       console.log('📡 Fetching MG applications for SDL:', sdlNo);
-      const response = await fetch(url, { timeout: 15000 });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await axios.get(url, { timeout: 15000 });
       
-      const data = await response.json();
-      console.log('✅ MG applications received:', data);
+      console.log('✅ MG applications received:', response.data);
       
-      setMgApplications(Array.isArray(data) ? data : []);
+      setMgApplications(Array.isArray(response.data) ? response.data : []);
+      
+      // Create document mapping for MG applications
+      const mapping = {};
+      response.data.forEach(app => {
+        if (app.Application_Number) {
+          mapping[app.Application_Number] = {
+            wsp: app.id, // Using application ID as document ID for WSP
+            moa: app.id, // Using application ID as document ID for MOA
+            awards: app.id // Using application ID as document ID for Awards
+          };
+        }
+      });
+      setDocumentMapping(prev => ({ ...prev, ...mapping }));
     } catch (error) {
       console.error('❌ Error fetching MG applications:', error);
       setMgApplications([]);
@@ -219,22 +205,28 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   // Fetch DG application details
   const fetchDGApplications = async (sdlNo) => {
     try {
-      const config = API_CONFIG();
-      const url = config.buildDGApplicationsDetailsURL ? 
-        config.buildDGApplicationsDetailsURL(sdlNo) : 
-        `${config.BASE_URL}${ENDPOINTS.DG_APPLICATIONS_DETAILS}/${sdlNo}`;
-      
+      const url = `${BASE_URL}/dg-applications-details/${sdlNo}`;
       console.log('📡 Fetching DG applications for SDL:', sdlNo);
-      const response = await fetch(url, { timeout: 15000 });
       
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+      const response = await axios.get(url, { timeout: 15000 });
       
-      const data = await response.json();
-      console.log('✅ DG applications received:', data);
+      console.log('✅ DG applications received:', response.data);
       
-      setDgApplications(Array.isArray(data) ? data : []);
+      setDgApplications(Array.isArray(response.data) ? response.data : []);
+      
+      // Create document mapping for DG applications
+      const mapping = {};
+      response.data.forEach(app => {
+        if (app.Application_Number) {
+          mapping[app.Application_Number] = {
+            appForm: app.id, // Using application ID as document ID
+            proposal: app.id, // Using application ID as document ID
+            moa: app.id, // Using application ID as document ID
+            awards: app.id // Using application ID as document ID
+          };
+        }
+      });
+      setDocumentMapping(prev => ({ ...prev, ...mapping }));
     } catch (error) {
       console.error('❌ Error fetching DG applications:', error);
       setDgApplications([]);
@@ -242,60 +234,120 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
     }
   };
 
-  // SIMPLIFIED: Direct file download from filename
-  const handleDownload = async (filename, documentName) => {
-    if (!filename || downloadingDoc) return;
+  // UPDATED: Download function using /download/:id endpoint
+  const handleDownload = async (documentId, documentType, fileName) => {
+    if (!documentId || downloadingDoc) return;
     
     setDownloadingDoc(true);
     
     try {
-      const config = API_CONFIG();
-      const encodedFilename = encodeURIComponent(filename);
-      const downloadUrl = `${config.BASE_URL}/download/document/${encodedFilename}`;
+      const finalFileName = fileName || `${documentType}_${documentId}.pdf`;
       
-      console.log('📥 Downloading:', downloadUrl);
+      console.log('📥 Downloading:', {
+        documentId,
+        documentType,
+        fileName: finalFileName
+      });
       
-      const canOpen = await Linking.canOpenURL(downloadUrl);
+      // Create file path for saving
+      const fileUri = `${FileSystem.documentDirectory}${finalFileName}`;
       
-      if (canOpen) {
-        await Linking.openURL(downloadUrl);
-        Alert.alert(
-          "Download Started",
-          `Downloading: ${documentName || filename}`,
-          [{ text: "OK" }]
-        );
-      } else {
-        Alert.alert(
-          "Download Instructions",
-          `Copy this URL and open in browser:\n\n${downloadUrl}`,
-          [
-            { text: "Copy URL", onPress: () => Alert.alert("Copied", "URL copied") },
-            { text: "OK" }
-          ]
-        );
-      }
+      // Download using FileSystem
+      const downloadResult = await FileSystem.downloadAsync(
+        `${BASE_URL}/download/${documentId}`,
+        fileUri
+      );
+      
+      console.log('✅ Download complete:', downloadResult);
+      
+      // Ask user what to do with the file
+      Alert.alert(
+        "Download Complete",
+        `${finalFileName} has been downloaded successfully!`,
+        [
+          {
+            text: "Open File",
+            onPress: () => openFile(fileUri, finalFileName)
+          },
+          {
+            text: "Share File",
+            onPress: () => shareFile(fileUri, finalFileName)
+          },
+          {
+            text: "OK",
+            style: "cancel"
+          }
+        ]
+      );
+      
     } catch (error) {
       console.error('❌ Download error:', error);
-      Alert.alert("Download Error", error.message);
+      Alert.alert(
+        "Download Failed", 
+        `Failed to download ${documentType} document.\n\nError: ${error.message}`,
+        [{ text: "OK" }]
+      );
     } finally {
       setDownloadingDoc(false);
     }
   };
 
-  // Test if file exists on server
-  const testFileExists = async (filename) => {
+  // Open downloaded file
+  const openFile = async (fileUri, fileName) => {
     try {
-      const config = API_CONFIG();
-      const encodedFilename = encodeURIComponent(filename);
-      const testUrl = `${config.BASE_URL}/download/document/${encodedFilename}`;
+      console.log("📂 Opening file:", fileUri);
       
-      console.log('🔍 Testing file:', testUrl);
-      const response = await fetch(testUrl, { method: 'HEAD' });
-      return response.ok;
+      if (Platform.OS === 'ios') {
+        // For iOS, use Sharing API
+        await Sharing.shareAsync(fileUri);
+      } else {
+        // For Android, use Intent Launcher
+        const contentUri = await FileSystem.getContentUriAsync(fileUri);
+        await Linking.openURL(contentUri);
+      }
     } catch (error) {
-      console.error('❌ File test error:', error);
-      return false;
+      console.error("❌ Error opening file:", error);
+      Alert.alert(
+        "Cannot Open File",
+        "Try opening with another app",
+        [{ text: "OK" }]
+      );
     }
+  };
+
+  // Share downloaded file
+  const shareFile = async (fileUri, fileName) => {
+    try {
+      if (!(await Sharing.isAvailableAsync())) {
+        Alert.alert("Sharing not available", "Sharing is not available on this device.");
+        return;
+      }
+      
+      await Sharing.shareAsync(fileUri, {
+        mimeType: getMimeType(fileName),
+        dialogTitle: `Share ${fileName}`,
+      });
+    } catch (error) {
+      console.error("❌ Error sharing file:", error);
+      Alert.alert("Sharing Failed", "Could not share the file.");
+    }
+  };
+
+  // Get MIME type from filename
+  const getMimeType = (fileName) => {
+    const ext = fileName.split('.').pop().toLowerCase();
+    const mimeTypes = {
+      'pdf': 'application/pdf',
+      'doc': 'application/msword',
+      'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      'xls': 'application/vnd.ms-excel',
+      'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'jpg': 'image/jpeg',
+      'jpeg': 'image/jpeg',
+      'png': 'image/png',
+      'txt': 'text/plain'
+    };
+    return mimeTypes[ext] || 'application/octet-stream';
   };
 
   const handleLogout = () => {
@@ -362,8 +414,6 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
   };
 
   const renderApiStatus = () => {
-    const config = API_CONFIG();
-    
     if (apiStatus === 'checking') {
       return (
         <View style={styles.apiStatusContainer}>
@@ -435,7 +485,6 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
               </Text>
             </View>
             <View style={styles.userDetails}>
-              <Text style={styles.userName}>Implementation Manager</Text>
               <Text style={styles.userEmail}>{userEmail}</Text>
             </View>
           </View>
@@ -450,7 +499,7 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
       </View>
       
       <View style={styles.headerBottom}>
-        <Text style={[styles.headerTitle, { color: CHIETA_COLORS.lightText }]}>Implementation Manager System</Text>
+        <Text style={[styles.headerTitle, { color: CHIETA_COLORS.lightText }]}>Information Management System</Text>
         <Text style={[styles.headerSubtitle, { color: 'rgba(255,255,255,0.8)' }]}>
           Manage mandatory and discretionary grants
         </Text>
@@ -714,33 +763,34 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
       {selectedOrg && mgApplications.length > 0 && (
         <View style={styles.applicationsSection}>
           <Text style={styles.sectionTitle}>MG Applications for {selectedOrg.Organisation_Name}</Text>
-          {mgApplications.map((app) => (
-            <View key={app.id} style={styles.applicationCard}>
-              <Text style={styles.appNumber}>{app.Application_Number}</Text>
-              <Text style={styles.appTitle}>{app.Application_Title}</Text>
-              
-              <View style={styles.documentStatus}>
-                <Text style={styles.docStatusLabel}>WSP: </Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(app.WSP_Approval_Status)]}>
-                  <Text style={styles.statusText}>{app.WSP_Approval_Status || 'Pending'}</Text>
-                </View>
+          {mgApplications.map((app) => {
+            const appId = app.id; // Use application ID for downloads
+            return (
+              <View key={app.id} style={styles.applicationCard}>
+                <Text style={styles.appNumber}>{app.Application_Number}</Text>
+                <Text style={styles.appTitle}>{app.Application_Title}</Text>
                 
-                <Text style={styles.docStatusLabel}>MOA: </Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(app.MOA_Status)]}>
-                  <Text style={styles.statusText}>{app.MOA_Status || 'Pending'}</Text>
+                <View style={styles.documentStatus}>
+                  <Text style={styles.docStatusLabel}>WSP: </Text>
+                  <View style={[styles.statusBadge, getStatusBadgeStyle(app.WSP_Approval_Status)]}>
+                    <Text style={styles.statusText}>{app.WSP_Approval_Status || 'Pending'}</Text>
+                  </View>
+                  
+                  <Text style={styles.docStatusLabel}>MOA: </Text>
+                  <View style={[styles.statusBadge, getStatusBadgeStyle(app.MOA_Status)]}>
+                    <Text style={styles.statusText}>{app.MOA_Status || 'Pending'}</Text>
+                  </View>
+                  
+                  <Text style={styles.docStatusLabel}>Awards: </Text>
+                  <View style={[styles.statusBadge, getStatusBadgeStyle(app.Awards_Letter_Status)]}>
+                    <Text style={styles.statusText}>{app.Awards_Letter_Status || 'Pending'}</Text>
+                  </View>
                 </View>
-                
-                <Text style={styles.docStatusLabel}>Awards: </Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(app.Awards_Letter_Status)]}>
-                  <Text style={styles.statusText}>{app.Awards_Letter_Status || 'Pending'}</Text>
-                </View>
-              </View>
 
-              <View style={styles.documentActions}>
-                {app.WSP_File_Path && (
+                <View style={styles.documentActions}>
                   <TouchableOpacity 
                     style={[styles.downloadButton, downloadingDoc && styles.disabledButton]}
-                    onPress={() => handleDownload(app.WSP_File_Path.split('/').pop(), "WSP Document")}
+                    onPress={() => handleDownload(appId, "WSP", `${app.Application_Number}_WSP.pdf`)}
                     disabled={downloadingDoc}
                   >
                     {downloadingDoc ? (
@@ -752,12 +802,10 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-                
-                {app.MOA_File_Path && (
+                  
                   <TouchableOpacity 
                     style={[styles.downloadButton, downloadingDoc && styles.disabledButton]}
-                    onPress={() => handleDownload(app.MOA_File_Path.split('/').pop(), "MOA Document")}
+                    onPress={() => handleDownload(appId, "MOA", `${app.Application_Number}_MOA.pdf`)}
                     disabled={downloadingDoc}
                   >
                     {downloadingDoc ? (
@@ -769,12 +817,10 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-                
-                {app.Awards_Letter_File_Path && (
+                  
                   <TouchableOpacity 
                     style={[styles.downloadButton, downloadingDoc && styles.disabledButton]}
-                    onPress={() => handleDownload(app.Awards_Letter_File_Path.split('/').pop(), "Awards Letter")}
+                    onPress={() => handleDownload(appId, "Awards", `${app.Application_Number}_Awards.pdf`)}
                     disabled={downloadingDoc}
                   >
                     {downloadingDoc ? (
@@ -786,10 +832,10 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
                       </>
                     )}
                   </TouchableOpacity>
-                )}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </ScrollView>
@@ -835,41 +881,42 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
       {selectedOrg && dgApplications.length > 0 && (
         <View style={styles.applicationsSection}>
           <Text style={styles.sectionTitle}>DG Applications for {selectedOrg.Organisation_Name}</Text>
-          {dgApplications.map((app) => (
-            <View key={app.id} style={styles.applicationCard}>
-              <Text style={styles.appNumber}>{app.Application_Number}</Text>
-              <Text style={styles.appTitle}>{app.Application_Title}</Text>
-              <Text style={styles.projectInfo}>
-                {app.Number_Of_Learners} learners • R {app.Total_Funding_Amount?.toLocaleString()}
-              </Text>
-              
-              <View style={styles.documentStatus}>
-                <Text style={styles.docStatusLabel}>Application: </Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(app.Application_Form_Status)]}>
-                  <Text style={styles.statusText}>{app.Application_Form_Status || 'Pending'}</Text>
-                </View>
+          {dgApplications.map((app) => {
+            const appId = app.id; // Use application ID for downloads
+            return (
+              <View key={app.id} style={styles.applicationCard}>
+                <Text style={styles.appNumber}>{app.Application_Number}</Text>
+                <Text style={styles.appTitle}>{app.Application_Title}</Text>
+                <Text style={styles.projectInfo}>
+                  {app.Number_Of_Learners} learners • R {app.Total_Funding_Amount?.toLocaleString()}
+                </Text>
                 
-                <Text style={styles.docStatusLabel}>Proposal: </Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(app.Proposal_Status)]}>
-                  <Text style={styles.statusText}>{app.Proposal_Status || 'Pending'}</Text>
+                <View style={styles.documentStatus}>
+                  <Text style={styles.docStatusLabel}>Application: </Text>
+                  <View style={[styles.statusBadge, getStatusBadgeStyle(app.Application_Form_Status)]}>
+                    <Text style={styles.statusText}>{app.Application_Form_Status || 'Pending'}</Text>
+                  </View>
+                  
+                  <Text style={styles.docStatusLabel}>Proposal: </Text>
+                  <View style={[styles.statusBadge, getStatusBadgeStyle(app.Proposal_Status)]}>
+                    <Text style={styles.statusText}>{app.Proposal_Status || 'Pending'}</Text>
+                  </View>
+                  
+                  <Text style={styles.docStatusLabel}>MOA: </Text>
+                  <View style={[styles.statusBadge, getStatusBadgeStyle(app.MOA_Status)]}>
+                    <Text style={styles.statusText}>{app.MOA_Status || 'Pending'}</Text>
+                  </View>
+                  
+                  <Text style={styles.docStatusLabel}>Awards: </Text>
+                  <View style={[styles.statusBadge, getStatusBadgeStyle(app.Awards_Letter_Status)]}>
+                    <Text style={styles.statusText}>{app.Awards_Letter_Status || 'Pending'}</Text>
+                  </View>
                 </View>
-                
-                <Text style={styles.docStatusLabel}>MOA: </Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(app.MOA_Status)]}>
-                  <Text style={styles.statusText}>{app.MOA_Status || 'Pending'}</Text>
-                </View>
-                
-                <Text style={styles.docStatusLabel}>Awards: </Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(app.Awards_Letter_Status)]}>
-                  <Text style={styles.statusText}>{app.Awards_Letter_Status || 'Pending'}</Text>
-                </View>
-              </View>
 
-              <View style={styles.documentActions}>
-                {app.Application_Form_Path && (
+                <View style={styles.documentActions}>
                   <TouchableOpacity 
                     style={[styles.downloadButton, downloadingDoc && styles.disabledButton]}
-                    onPress={() => handleDownload(app.Application_Form_Path.split('/').pop(), "Application Form")}
+                    onPress={() => handleDownload(appId, "Application", `${app.Application_Number}_Application.pdf`)}
                     disabled={downloadingDoc}
                   >
                     {downloadingDoc ? (
@@ -881,12 +928,10 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-                
-                {app.Proposal_Document_Path && (
+                  
                   <TouchableOpacity 
                     style={[styles.downloadButton, downloadingDoc && styles.disabledButton]}
-                    onPress={() => handleDownload(app.Proposal_Document_Path.split('/').pop(), "Proposal Document")}
+                    onPress={() => handleDownload(appId, "Proposal", `${app.Application_Number}_Proposal.pdf`)}
                     disabled={downloadingDoc}
                   >
                     {downloadingDoc ? (
@@ -898,12 +943,10 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-                
-                {app.MOA_File_Path && (
+                  
                   <TouchableOpacity 
                     style={[styles.downloadButton, downloadingDoc && styles.disabledButton]}
-                    onPress={() => handleDownload(app.MOA_File_Path.split('/').pop(), "MOA Document")}
+                    onPress={() => handleDownload(appId, "MOA", `${app.Application_Number}_MOA.pdf`)}
                     disabled={downloadingDoc}
                   >
                     {downloadingDoc ? (
@@ -915,12 +958,10 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
                       </>
                     )}
                   </TouchableOpacity>
-                )}
-                
-                {app.Awards_Letter_File_Path && (
+                  
                   <TouchableOpacity 
                     style={[styles.downloadButton, downloadingDoc && styles.disabledButton]}
-                    onPress={() => handleDownload(app.Awards_Letter_File_Path.split('/').pop(), "Awards Letter")}
+                    onPress={() => handleDownload(appId, "Awards", `${app.Application_Number}_Awards.pdf`)}
                     disabled={downloadingDoc}
                   >
                     {downloadingDoc ? (
@@ -932,10 +973,10 @@ const IMsScreen = ({ onNavigateBack, userEmail, userRole, userData }) => {
                       </>
                     )}
                   </TouchableOpacity>
-                )}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </ScrollView>

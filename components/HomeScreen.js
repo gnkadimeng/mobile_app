@@ -1,11 +1,11 @@
 import React, { useState } from "react";
-import { 
-  View, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
-  Image, 
-  Text, 
+import {
+  View,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  Image,
+  Text,
   Dimensions,
   Modal,
   Alert,
@@ -25,17 +25,17 @@ import { Linking } from 'react-native';
 const { width, height } = Dimensions.get('window');
 
 const ServiceTile = ({ iconName, label, description, onPress, iconColor, isComingSoon = false, index }) => (
-  <Animatable.View 
-    animation="fadeInUp" 
-    duration={800} 
+  <Animatable.View
+    animation="fadeInUp"
+    duration={800}
     delay={index * 100}
     style={styles.tileWrapper}
   >
-    <TouchableOpacity 
+    <TouchableOpacity
       style={[
-        styles.tileButton, 
+        styles.tileButton,
         isComingSoon && styles.tileButtonDisabled
-      ]} 
+      ]}
       onPress={onPress}
       disabled={isComingSoon}
       activeOpacity={0.9}
@@ -44,10 +44,10 @@ const ServiceTile = ({ iconName, label, description, onPress, iconColor, isComin
         colors={['rgba(255,255,255,0.2)', 'rgba(255,255,255,0.05)']}
         style={styles.tileIconContainer}
       >
-        <Ionicons 
-          name={iconName} 
-          size={36} 
-          color={isComingSoon ? "#9CA3AF" : iconColor} 
+        <Ionicons
+          name={iconName}
+          size={36}
+          color={isComingSoon ? "#9CA3AF" : iconColor}
         />
       </LinearGradient>
       <Text style={[
@@ -74,12 +74,12 @@ const ServiceTile = ({ iconName, label, description, onPress, iconColor, isComin
   </Animatable.View>
 );
 
-const HomeScreen = ({ 
-  onNavigateBack, 
-  onNavigateToLogin, 
-  userEmail, 
-  isLoggedIn, 
-  userRole 
+const HomeScreen = ({
+  onNavigateBack,
+  onNavigateToLogin,
+  userEmail,
+  isLoggedIn,
+  userRole
 }) => {
   const [chatbotModalVisible, setChatbotModalVisible] = useState(false);
   const [userInput, setUserInput] = useState('');
@@ -88,6 +88,10 @@ const HomeScreen = ({
   const [loading, setLoading] = useState(false);
   const [redirectModalVisible, setRedirectModalVisible] = useState(false);
   const [pendingUrl, setPendingUrl] = useState('');
+  // NEW 
+  const [ecosystemVisible, setEcosystemVisible] = useState(true);
+  const [updatesVisible, setUpdatesVisible] = useState(true);
+
 
   const showRedirectConfirmation = (url) => {
     setPendingUrl(url);
@@ -193,11 +197,11 @@ const HomeScreen = ({
   const getUserGreeting = () => {
     if (isLoggedIn && userEmail) {
       const displayName = userEmail.split('@')[0];
-      const roleDisplay = userRole === 'GM' ? 'Company' : 
-                         userRole === 'Learner' ? 'Student' : 
-                         userRole === 'IM' ? 'Implementation Manager' : 
-                         userRole;
-      
+      const roleDisplay = userRole === 'GM' ? 'Company' :
+        userRole === 'Learner' ? 'Student' :
+          userRole === 'IM' ? 'Implementation Manager' :
+            userRole;
+
       return `Welcome back, ${displayName}!`;
     }
     return "Unlock Your Potential with CHIETA";
@@ -231,31 +235,31 @@ const HomeScreen = ({
       description: "Quality Assurance System",
       color: "#06D6A0",
       isComingSoon: true,
-      action: () => {}
+      action: () => { }
     }
   ];
 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <StatusBar barStyle="light-content" backgroundColor="#3c0d5dff" />
-      
+
       {/* Main ScrollView - Everything inside is scrollable */}
-      <ScrollView 
+      <ScrollView
         style={styles.mainScrollView}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
         {/* Enhanced Header with Gradient */}
-        <LinearGradient 
-          colors={["#562a75ff", "#46235fff", "#3f1b58ff"]} 
+        <LinearGradient
+          colors={["#562a75ff", "#46235fff", "#3f1b58ff"]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={styles.header}
         >
           <View style={styles.headerContent}>
-            <Image 
-              source={require("../assets/images/chieta_logo.png")} 
-              style={styles.headerLogo} 
+            <Image
+              source={require("../assets/images/chieta_logo.png")}
+              style={styles.headerLogo}
             />
 
             {/* User Info */}
@@ -287,9 +291,9 @@ const HomeScreen = ({
             <Text style={styles.heroSubtitle}>
               Transforming Skills Development in the Chemical Industry
             </Text>
-            
+
             {!isLoggedIn && (
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.ctaButton}
                 onPress={onNavigateToLogin}
                 activeOpacity={0.9}
@@ -310,7 +314,7 @@ const HomeScreen = ({
 
         {/* Featured Banner */}
         <Animatable.View animation="fadeInUp" delay={300} duration={800} style={styles.featuredContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.featuredTouchable}
             onPress={() => showRedirectConfirmation('https://chieta.org.za')}
             activeOpacity={0.9}
@@ -340,8 +344,179 @@ const HomeScreen = ({
           </TouchableOpacity>
         </Animatable.View>
 
-        {/* Systems Grid */}
+        {/* New */}
+        {/* Systems section with toggle */}
         <Animatable.View animation="fadeInUp" delay={400} style={styles.systemsSection}>
+          <TouchableOpacity
+            style={styles.sectionHeaderTouchable}
+            onPress={() => setEcosystemVisible(!ecosystemVisible)}
+            activeOpacity={0.8}
+          >
+            <Animatable.View
+              animation={ecosystemVisible ? "pulse" : undefined}
+              iterationCount="infinite"
+              duration={2000}
+              style={styles.glowingIconContainer}
+            >
+              <LinearGradient
+                colors={['#FF6B6B', '#FF8F00']}
+                style={styles.sectionIcon}
+              >
+                <Ionicons name="apps" size={24} color="#FFFFFF" />
+              </LinearGradient>
+              {/* glow effect part*/}
+              {ecosystemVisible && (
+                <LinearGradient
+                  colors={['rgba(255,107,107,0.3)', 'rgba(255,143,0,0.3)', 'transparent']}
+                  style={styles.glowRing}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+              )}
+            </Animatable.View>
+
+
+
+            <View style={styles.sectionHeaderText}>
+              <Text style={styles.sectionTitle}>Our Digital Ecosystem</Text>
+              <Text style={styles.sectionSubtitle}>
+                {isLoggedIn ? "Your gateway to specialized systems" : "Login to access specialized platforms"}
+              </Text>
+              <View style={styles.toggleIndicator}>
+                <Ionicons
+                  name={ecosystemVisible ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#FF8F00"
+                />
+                <Text style={styles.toggleText}>
+                  {ecosystemVisible ? "Tap to collapse" : "Tap to expand"}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Conditional render of the systems grid */}
+          {ecosystemVisible && (
+            <Animatable.View
+              animation="fadeIn"
+              duration={500}
+              style={styles.tileGrid}
+            >
+              {systems.map((system, index) => (
+                <ServiceTile
+                  key={system.label}
+                  iconName={system.icon}
+                  label={system.label}
+                  description={system.description}
+                  onPress={system.action}
+                  iconColor={system.color}
+                  isComingSoon={system.isComingSoon}
+                  index={index}
+                />
+              ))}
+            </Animatable.View>
+          )}
+        </Animatable.View>
+        
+
+
+        {/* Latest updates with toggle */}
+        <Animatable.View animation="fadeInUp" delay={500} style={styles.updatesSection}>
+          <TouchableOpacity
+            style={styles.sectionHeaderTouchable}
+            onPress={() => setUpdatesVisible(!updatesVisible)}
+            activeOpacity={0.8}
+          >
+            <Animatable.View
+              animation={updatesVisible ? "pulse" : undefined}
+              iterationCount="infinite"
+              duration={2000}
+              style={styles.glowingIconContainer}
+            >
+              <LinearGradient
+                colors={['#4ECDC4', '#06D6A0']}
+                style={styles.sectionIcon}
+              >
+                <Ionicons name="megaphone" size={24} color="#FFFFFF" />
+              </LinearGradient>
+              {/* Glow effect*/}
+              {updatesVisible && (
+                <LinearGradient
+                  colors={['rgba(78, 205, 196, 0.3)', 'rgba(6, 214, 160, 0.3)', 'transparent']}
+                  style={styles.glowRing}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                />
+              )}
+            </Animatable.View>
+
+            <View style={styles.sectionHeaderText}>
+              <Text style={styles.sectionTitle}>Latest Updates</Text>
+              <Text style={styles.sectionSubtitle}>Stay informed with recent developments</Text>
+              <View style={styles.toggleIndicator}>
+                <Ionicons
+                  name={updatesVisible ? "chevron-up" : "chevron-down"}
+                  size={16}
+                  color="#06D6A0"
+                />
+                <Text style={[styles.toggleText, { color: '#06D6A0' }]}>
+                  {updatesVisible ? "Tap to collapse" : "Tap to expand"}
+                </Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+
+          {/* Conditional render of the updates */}
+          {updatesVisible && (
+            <Animatable.View
+              animation="fadeIn"
+              duration={500}
+              style={styles.updatesContainer}
+            >
+              <TouchableOpacity
+                style={styles.updateCard}
+                onPress={() => showRedirectConfirmation('https://chieta.org.za/?s=Discretionary+Grants')}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#FF6B6B', '#FF8F00']}
+                  style={styles.updateIconContainer}
+                >
+                  <Ionicons name="gift" size={20} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={styles.updateContent}>
+                  <Text style={styles.updateTitle}>2025 Grants Launch</Text>
+                  <Text style={styles.updateDescription}>Discretionary grants for strategic projects now open</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#FF6B6B" />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.updateCard}
+                onPress={() => showRedirectConfirmation('https://chieta.org.za/?s=ssp')}
+                activeOpacity={0.8}
+              >
+                <LinearGradient
+                  colors={['#4ECDC4', '#06D6A0']}
+                  style={styles.updateIconContainer}
+                >
+                  <Ionicons name="document-text" size={20} color="#FFFFFF" />
+                </LinearGradient>
+                <View style={styles.updateContent}>
+                  <Text style={styles.updateTitle}>Sector Skills Plan</Text>
+                  <Text style={styles.updateDescription}>Updated industry guidelines published</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={16} color="#4ECDC4" />
+              </TouchableOpacity>
+            </Animatable.View>
+          )}
+        </Animatable.View>
+        {/* new ends */}
+
+      
+
+        {/* Systems Grid */}
+        {/* <Animatable.View animation="fadeInUp" delay={400} style={styles.systemsSection}>
           <View style={styles.sectionHeader}>
             <LinearGradient
               colors={['#FF6B6B', '#FF8F00']}
@@ -371,10 +546,10 @@ const HomeScreen = ({
               />
             ))}
           </View>
-        </Animatable.View>
+        </Animatable.View> */}
 
         {/* Latest Updates */}
-        <Animatable.View animation="fadeInUp" delay={500} style={styles.updatesSection}>
+        {/* <Animatable.View animation="fadeInUp" delay={500} style={styles.updatesSection}>
           <View style={styles.sectionHeader}>
             <LinearGradient
               colors={['#4ECDC4', '#06D6A0']}
@@ -425,7 +600,8 @@ const HomeScreen = ({
               <Ionicons name="chevron-forward" size={16} color="#4ECDC4" />
             </TouchableOpacity>
           </View>
-        </Animatable.View>
+        </Animatable.View> */}
+
 
         {/* Quick Access */}
         {isLoggedIn && (
@@ -486,14 +662,14 @@ const HomeScreen = ({
       </ScrollView>
 
       {/* Floating Chatbot Button */}
-      <Animatable.View 
-        animation="pulse" 
-        iterationCount="infinite" 
+      <Animatable.View
+        animation="pulse"
+        iterationCount="infinite"
         duration={1500}
         style={styles.chatbotContainer}
       >
-        <TouchableOpacity 
-          style={styles.chatbotFab} 
+        <TouchableOpacity
+          style={styles.chatbotFab}
           onPress={() => setChatbotModalVisible(true)}
           activeOpacity={0.9}
         >
@@ -627,7 +803,7 @@ const HomeScreen = ({
               <Ionicons name="globe" size={40} color="#FF8F00" />
               <Text style={styles.redirectModalTitle}>External Website</Text>
             </View>
-            
+
             <View style={styles.redirectModalBody}>
               <Text style={styles.redirectModalText}>
                 You are about to visit the official CHIETA website
@@ -638,15 +814,15 @@ const HomeScreen = ({
             </View>
 
             <View style={styles.redirectModalButtons}>
-              <TouchableOpacity 
-                style={[styles.redirectButton, styles.cancelButton]} 
+              <TouchableOpacity
+                style={[styles.redirectButton, styles.cancelButton]}
                 onPress={cancelRedirect}
               >
                 <Text style={styles.cancelButtonText}>Cancel</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={[styles.redirectButton, styles.confirmButton]} 
+
+              <TouchableOpacity
+                style={[styles.redirectButton, styles.confirmButton]}
                 onPress={confirmRedirect}
               >
                 <LinearGradient
@@ -672,9 +848,9 @@ const HomeScreen = ({
           </LinearGradient>
           <Text style={styles.bottomNavLabel}>Home</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.bottomNavButton} 
+
+        <TouchableOpacity
+          style={styles.bottomNavButton}
           onPress={onNavigateToLogin}
           activeOpacity={0.7}
         >
@@ -683,7 +859,7 @@ const HomeScreen = ({
           </View>
           <Text style={[styles.bottomNavLabel, styles.bottomNavLabelSecondary]}>Systems</Text>
         </TouchableOpacity>
-        
+
         {isLoggedIn ? (
           <TouchableOpacity style={styles.bottomNavButton} activeOpacity={0.7}>
             <View style={[styles.navIcon, styles.navIconSecondary]}>
@@ -692,8 +868,8 @@ const HomeScreen = ({
             <Text style={[styles.bottomNavLabel, styles.bottomNavLabelSecondary]}>Profile</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity 
-            style={styles.bottomNavButton} 
+          <TouchableOpacity
+            style={styles.bottomNavButton}
             onPress={onNavigateToLogin}
             activeOpacity={0.7}
           >
@@ -876,6 +1052,60 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
   },
+
+  // new
+  sectionHeaderTouchable: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
+    padding: 8,
+    borderRadius: 16,
+    backgroundColor: '#FFFFFF',
+    shadowColor: '#FF6B6B',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+    borderWidth: 1,
+    borderColor: 'rgba(255,107,107,0.1)',
+  },
+
+  glowingIconContainer: {
+    position: 'relative',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  glowRing: {
+    position: 'absolute',
+    width: 56,
+    height: 56,
+    borderRadius: 16,
+    top: -4,
+    left: -4,
+    zIndex: 1,
+  },
+
+  sectionHeaderText: {
+    flex: 1,
+  },
+
+  toggleIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 4,
+    gap: 4,
+  },
+
+  toggleText: {
+    fontSize: 12,
+    color: '#FF8F00',
+    fontWeight: '500',
+  },
+  // new ends
+
+
   sectionIcon: {
     width: 48,
     height: 48,
