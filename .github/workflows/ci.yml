@@ -44,10 +44,19 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: frontend
+      # The API lives in a separate repo. The default GITHUB_TOKEN is scoped to
+      # THIS repo only, so it cannot check out the private cktshukudu/backend_api
+      # (that fails with "Not Found"). We check out the public mirror instead.
+      #
+      # To point at the private repo instead: create a PAT/fine-grained token
+      # with read access to backend_api, add it as the secret BACKEND_REPO_TOKEN,
+      # then set `repository: cktshukudu/backend_api`, `ref: master`, and
+      # `token: ${{ secrets.BACKEND_REPO_TOKEN }}` below.
       - name: Checkout backend
         uses: actions/checkout@v4
         with:
-          repository: cktshukudu/backend_api
+          repository: gnkadimeng/backend_api
+          ref: feature/auth-and-hardening
           path: backend
 
       - uses: actions/setup-node@v4
