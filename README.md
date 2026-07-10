@@ -1,50 +1,77 @@
-# Welcome to your Expo app 👋
+# CHIETA Mobile App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Expo / React Native app for CHIETA — login, grant dashboards (GM & IM portals), organisation data, and document access. Talks to the [CHIETA Backend API](https://github.com/cktshukudu/backend_api).
 
-## Get started
+## Architecture
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+Mobile app (Expo) ──HTTPS──► https://ssdd.chieta.org.za/mobile-api ──► backend ──► PostgreSQL
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+- **Frontend only** — all data comes from the backend API. No business logic or secrets live in the app.
+- **Auth:** the app logs in, receives a **JWT**, stores it, and sends it as `Authorization: Bearer <token>` on every request (see [`authToken.js`](authToken.js)).
 
-## Learn more
+## API configuration
 
-To learn more about developing your project with Expo, look at the following resources:
+The API base URL resolves in one place — [`config.js`](config.js):
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+1. **`EXPO_PUBLIC_API_URL`** (env) always wins — set it for deploys, staging, or CI.
+2. Otherwise: `PRODUCTION` in a build, `DEVELOPMENT` (`http://localhost:5000`) in dev.
 
-## Join the community
+```bash
+# point the app at any backend without code changes (put it in a .env file
+# so Expo inlines it at build time)
+echo "EXPO_PUBLIC_API_URL=https://ssdd.chieta.org.za/mobile-api" > .env
+```
 
-Join our community of developers creating universal apps.
+> When you change the env, rebuild with `--clear` so Metro re-inlines it:
+> `npx expo export --platform web --output-dir dist --clear`
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Every endpoint, request/response shape, and the auth flow are documented in the backend's **Swagger UI**: `https://ssdd.chieta.org.za/mobile-api/api-docs/`.
+
+## Run locally
+
+```bash
+npm install
+
+# web (quickest to click through)
+npx expo start --web
+
+# native (needs Android Studio / Xcode — this is a bare workflow, not Expo Go)
+npx expo run:android
+npx expo run:ios
+```
+
+Log in with a backend account; the app then shows the portal selection (IMS / GMS).
+
+## Build & distribute
+
+```bash
+# Android release APK
+cd android && ./gradlew assembleRelease
+```
+
+Set `EXPO_PUBLIC_API_URL` (via `.env`) to the target backend before building, then distribute the signed APK to staff (MDM / sideload).
+
+## Tests
+
+```bash
+npm run test:e2e     # Playwright: login → portal flow (see e2e/)
+```
+
+CI (`.github/workflows/ci.yml`) lints, builds the web bundle, and runs a full-stack Playwright E2E (spins up the backend + a seeded Postgres, then drives the app).
+
+## Project layout
+
+| Path | What |
+|---|---|
+| `app/` | Expo Router entry |
+| `components/` | Screens (Login, Home, dashboards, …) |
+| `config.js` | API base URL + endpoint definitions |
+| `authToken.js` | JWT storage + axios auth header |
+| `e2e/` | Playwright end-to-end tests |
+
+## Notes
+
+- Don't hardcode API hosts in screens — route everything through `config.js`.
+- Never commit secrets or `.env`.
