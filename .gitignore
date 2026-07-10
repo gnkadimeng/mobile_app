@@ -15,3 +15,6 @@ web-build/
 test-results/
 playwright-report/
 coverage/
+
+.env
+.env.local
