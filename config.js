@@ -8,7 +8,7 @@ const API_CONFIG = {
   
   // Development - Local backend
   DEVELOPMENT: {
-    BASE_URL: "http://localhost:5000", 
+    BASE_URL: "http://localhost:5055", 
     NAME: "Development"
   },
   
@@ -91,14 +91,21 @@ const getEnvironment = () => {
   return 'PRODUCTION';
 };
 
-// Get the appropriate base URL based on environment
+// Get the appropriate base URL based on environment.
+// An explicit EXPO_PUBLIC_API_URL always wins — this is how deploys, staging,
+// and CI/E2E point the app at a chosen backend without code changes (and is the
+// single place all API calls should resolve their host from).
 const getBaseURL = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    console.log(`🔗 API Base URL (env override): ${process.env.EXPO_PUBLIC_API_URL}`);
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
   const environment = getEnvironment();
   const config = API_CONFIG[environment] || API_CONFIG.PRODUCTION;
-  
+
   console.log(`🌍 Environment: ${config.NAME}`);
   console.log(`🔗 API Base URL: ${config.BASE_URL}`);
-  
+
   return config.BASE_URL;
 };
 
