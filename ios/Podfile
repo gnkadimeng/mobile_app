@@ -16,6 +16,11 @@ prepare_react_native_project!
 target 'chietamobile' do
   use_expo_modules!
 
+  # React Native Firebase (auth/database) pulls in the Swift Firebase SDK, whose
+  # pods depend on non-modular pods and cannot link as static libraries without
+  # module maps. Generate them for every pod so `pod install` succeeds.
+  use_modular_headers!
+
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'
     config_command = ['node', '-e', "process.argv=['', '', 'config'];require('@react-native-community/cli').run()"];
   else
